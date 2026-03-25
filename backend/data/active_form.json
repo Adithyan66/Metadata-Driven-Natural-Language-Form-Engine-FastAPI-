@@ -1,0 +1,273 @@
+{
+  "form_id": "bank_opening_form",
+  "title": "Bank Account Opening Form",
+  "fields": [
+    {
+      "field_id": "full_name",
+      "label": "Full Name",
+      "type": "text",
+      "required": true,
+      "validation_rules": {
+        "min_length": 2,
+        "max_length": 100
+      }
+    },
+    {
+      "field_id": "age",
+      "label": "Age",
+      "type": "number",
+      "required": true,
+      "validation_rules": {
+        "min": 18,
+        "max": 120
+      }
+    },
+    {
+      "field_id": "email",
+      "label": "Email Address",
+      "type": "text",
+      "required": true,
+      "validation_rules": {
+        "regex": "^[\\w.-]+@[\\w.-]+\\.\\w{2,}$",
+        "regex_description": "a valid email address"
+      }
+    },
+    {
+      "field_id": "phone",
+      "label": "Phone Number",
+      "type": "text",
+      "required": true,
+      "validation_rules": {
+        "regex": "^\\+?[0-9]{7,15}$",
+        "regex_description": "a valid phone number (7-15 digits, optional + prefix)"
+      }
+    },
+    {
+      "field_id": "country",
+      "label": "Country",
+      "type": "dropdown",
+      "required": true,
+      "dropdown_options": [
+        {
+          "value": "India",
+          "children": {
+            "field_id": "state",
+            "options": [
+              {
+                "value": "Kerala",
+                "children": {
+                  "field_id": "district",
+                  "options": [
+                    {
+                      "value": "Alappuzha",
+                      "children": {
+                        "field_id": "ward",
+                        "options": [
+                          {
+                            "value": "Ward1"
+                          },
+                          {
+                            "value": "Ward6"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "value": "Ernakulam"
+                    },
+                    {
+                      "value": "Thiruvananthapuram"
+                    },
+                    {
+                      "value": "Kottayam"
+                    }
+                  ]
+                }
+              },
+              {
+                "value": "Tamil Nadu",
+                "children": {
+                  "field_id": "district",
+                  "options": [
+                    {
+                      "value": "Chennai"
+                    },
+                    {
+                      "value": "Coimbatore"
+                    },
+                    {
+                      "value": "Madurai"
+                    }
+                  ]
+                }
+              },
+              {
+                "value": "Karnataka",
+                "children": {
+                  "field_id": "district",
+                  "options": [
+                    {
+                      "value": "Bangalore"
+                    },
+                    {
+                      "value": "Mysore"
+                    },
+                    {
+                      "value": "Mangalore"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "value": "Japan",
+          "children": {
+            "field_id": "state",
+            "options": [
+              {
+                "value": "Kerala",
+                "children": {
+                  "field_id": "district",
+                  "options": [
+                    {
+                      "value": "Tokyo",
+                      "children": {
+                        "field_id": "ward",
+                        "options": [
+                          {
+                            "value": "Ward1"
+                          },
+                          {
+                            "value": "Ward2"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "value": "Yokohama"
+                    }
+                  ]
+                }
+              },
+              {
+                "value": "Kansai",
+                "children": {
+                  "field_id": "district",
+                  "options": [
+                    {
+                      "value": "Osaka"
+                    },
+                    {
+                      "value": "Kyoto"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "value": "China",
+          "children": {
+            "field_id": "state",
+            "options": [
+              {
+                "value": "Guangdong",
+                "children": {
+                  "field_id": "district",
+                  "options": [
+                    {
+                      "value": "Shenzhen",
+                      "children": {
+                        "field_id": "ward",
+                        "options": [
+                          {
+                            "value": "Ward100"
+                          },
+                          {
+                            "value": "Ward200"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "value": "Guangzhou"
+                    }
+                  ]
+                }
+              },
+              {
+                "value": "Beijing",
+                "children": {
+                  "field_id": "district",
+                  "options": [
+                    {
+                      "value": "Haidian",
+                      "children": {
+                        "field_id": "ward",
+                        "options": [
+                          {
+                            "value": "Ward1"
+                          },
+                          {
+                            "value": "Ward2"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "value": "Chaoyang"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "field_id": "state",
+      "label": "State",
+      "type": "dropdown",
+      "required": true,
+      "parent_field_id": "country",
+      "dropdown_options": []
+    },
+    {
+      "field_id": "district",
+      "label": "District",
+      "type": "dropdown",
+      "required": true,
+      "parent_field_id": "state",
+      "dropdown_options": []
+    },
+    {
+      "field_id": "ward",
+      "label": "Ward",
+      "type": "dropdown",
+      "required": true,
+      "parent_field_id": "district",
+      "dropdown_options": []
+    },
+    {
+      "field_id": "account_type",
+      "label": "Account Type",
+      "type": "dropdown",
+      "required": true,
+      "dropdown_options": [
+        {
+          "value": "Savings"
+        },
+        {
+          "value": "Current"
+        },
+        {
+          "value": "Fixed Deposit"
+        }
+      ]
+    }
+  ]
+}

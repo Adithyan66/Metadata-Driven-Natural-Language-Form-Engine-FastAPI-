@@ -1,0 +1,723 @@
+[
+  {
+    "form_id": "bank_opening_form",
+    "title": "Bank Account Opening Form",
+    "fields": [
+      {
+        "field_id": "full_name",
+        "label": "Full Name",
+        "type": "text",
+        "required": true,
+        "validation_rules": {
+          "min_length": 2,
+          "max_length": 100
+        }
+      },
+      {
+        "field_id": "age",
+        "label": "Age",
+        "type": "number",
+        "required": true,
+        "validation_rules": {
+          "min": 18,
+          "max": 120
+        }
+      },
+      {
+        "field_id": "email",
+        "label": "Email Address",
+        "type": "text",
+        "required": true,
+        "validation_rules": {
+          "regex": "^[\\w.-]+@[\\w.-]+\\.\\w{2,}$",
+          "regex_description": "a valid email address"
+        }
+      },
+      {
+        "field_id": "phone",
+        "label": "Phone Number",
+        "type": "text",
+        "required": true,
+        "validation_rules": {
+          "regex": "^\\+?[0-9]{7,15}$",
+          "regex_description": "a valid phone number (7-15 digits, optional + prefix)"
+        }
+      },
+      {
+        "field_id": "country",
+        "label": "Country",
+        "type": "dropdown",
+        "required": true,
+        "dropdown_options": [
+          {
+            "value": "India",
+            "children": {
+              "field_id": "state",
+              "options": [
+                {
+                  "value": "Kerala",
+                  "children": {
+                    "field_id": "district",
+                    "options": [
+                      {
+                        "value": "Alappuzha",
+                        "children": {
+                          "field_id": "ward",
+                          "options": [
+                            {
+                              "value": "Ward1"
+                            },
+                            {
+                              "value": "Ward6"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "value": "Ernakulam"
+                      },
+                      {
+                        "value": "Thiruvananthapuram"
+                      },
+                      {
+                        "value": "Kottayam"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "value": "Tamil Nadu",
+                  "children": {
+                    "field_id": "district",
+                    "options": [
+                      {
+                        "value": "Chennai"
+                      },
+                      {
+                        "value": "Coimbatore"
+                      },
+                      {
+                        "value": "Madurai"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "value": "Karnataka",
+                  "children": {
+                    "field_id": "district",
+                    "options": [
+                      {
+                        "value": "Bangalore"
+                      },
+                      {
+                        "value": "Mysore"
+                      },
+                      {
+                        "value": "Mangalore"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "value": "Japan",
+            "children": {
+              "field_id": "state",
+              "options": [
+                {
+                  "value": "Kerala",
+                  "children": {
+                    "field_id": "district",
+                    "options": [
+                      {
+                        "value": "Tokyo",
+                        "children": {
+                          "field_id": "ward",
+                          "options": [
+                            {
+                              "value": "Ward1"
+                            },
+                            {
+                              "value": "Ward2"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "value": "Yokohama"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "value": "Kansai",
+                  "children": {
+                    "field_id": "district",
+                    "options": [
+                      {
+                        "value": "Osaka"
+                      },
+                      {
+                        "value": "Kyoto"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "value": "China",
+            "children": {
+              "field_id": "state",
+              "options": [
+                {
+                  "value": "Guangdong",
+                  "children": {
+                    "field_id": "district",
+                    "options": [
+                      {
+                        "value": "Shenzhen",
+                        "children": {
+                          "field_id": "ward",
+                          "options": [
+                            {
+                              "value": "Ward100"
+                            },
+                            {
+                              "value": "Ward200"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "value": "Guangzhou"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "value": "Beijing",
+                  "children": {
+                    "field_id": "district",
+                    "options": [
+                      {
+                        "value": "Haidian",
+                        "children": {
+                          "field_id": "ward",
+                          "options": [
+                            {
+                              "value": "Ward1"
+                            },
+                            {
+                              "value": "Ward2"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "value": "Chaoyang"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "field_id": "state",
+        "label": "State",
+        "type": "dropdown",
+        "required": true,
+        "parent_field_id": "country",
+        "dropdown_options": []
+      },
+      {
+        "field_id": "district",
+        "label": "District",
+        "type": "dropdown",
+        "required": true,
+        "parent_field_id": "state",
+        "dropdown_options": []
+      },
+      {
+        "field_id": "ward",
+        "label": "Ward",
+        "type": "dropdown",
+        "required": true,
+        "parent_field_id": "district",
+        "dropdown_options": []
+      },
+      {
+        "field_id": "account_type",
+        "label": "Account Type",
+        "type": "dropdown",
+        "required": true,
+        "dropdown_options": [
+          {
+            "value": "Savings"
+          },
+          {
+            "value": "Current"
+          },
+          {
+            "value": "Fixed Deposit"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "form_id": "student_registration",
+    "title": "Student Registration Form",
+    "fields": [
+      {
+        "field_id": "student_name",
+        "label": "Student Name",
+        "type": "text",
+        "required": true,
+        "validation_rules": {
+          "min_length": 2,
+          "max_length": 100
+        }
+      },
+      {
+        "field_id": "student_age",
+        "label": "Age",
+        "type": "number",
+        "required": true,
+        "validation_rules": {
+          "min": 5,
+          "max": 30
+        }
+      },
+      {
+        "field_id": "grade",
+        "label": "Grade",
+        "type": "dropdown",
+        "required": true,
+        "dropdown_options": [
+          {
+            "value": "Grade 1"
+          },
+          {
+            "value": "Grade 2"
+          },
+          {
+            "value": "Grade 3"
+          },
+          {
+            "value": "Grade 4"
+          },
+          {
+            "value": "Grade 5"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "form_id": "job_application_form",
+    "title": "Job Application Form",
+    "fields": [
+      {
+        "field_id": "department",
+        "label": "Department",
+        "type": "dropdown",
+        "required": true,
+        "dropdown_options": [
+          {
+            "value": "Engineering",
+            "children": {
+              "field_id": "role",
+              "options": [
+                {
+                  "value": "Frontend Developer",
+                  "children": {
+                    "field_id": "experience_level",
+                    "options": [
+                      {
+                        "value": "Junior"
+                      },
+                      {
+                        "value": "Mid"
+                      },
+                      {
+                        "value": "Senior"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "value": "Backend Developer",
+                  "children": {
+                    "field_id": "experience_level",
+                    "options": [
+                      {
+                        "value": "Junior"
+                      },
+                      {
+                        "value": "Mid"
+                      },
+                      {
+                        "value": "Senior"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "value": "Design",
+            "children": {
+              "field_id": "role",
+              "options": [
+                {
+                  "value": "UI Designer"
+                },
+                {
+                  "value": "UX Researcher"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "field_id": "role",
+        "label": "Role",
+        "type": "dropdown",
+        "required": true,
+        "parent_field_id": "department",
+        "dropdown_options": []
+      },
+      {
+        "field_id": "experience_level",
+        "label": "Experience Level",
+        "type": "dropdown",
+        "required": true,
+        "parent_field_id": "role",
+        "dropdown_options": []
+      },
+      {
+        "field_id": "location",
+        "label": "Preferred Work Location",
+        "type": "dropdown",
+        "required": true,
+        "dropdown_options": [
+          {
+            "value": "Remote"
+          },
+          {
+            "value": "Hybrid"
+          },
+          {
+            "value": "Onsite"
+          }
+        ]
+      },
+      {
+        "field_id": "employment_type",
+        "label": "Employment Type",
+        "type": "dropdown",
+        "required": true,
+        "dropdown_options": [
+          {
+            "value": "Full-Time"
+          },
+          {
+            "value": "Part-Time"
+          },
+          {
+            "value": "Contract"
+          },
+          {
+            "value": "Internship"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "form_id": "enterprise_employee_form",
+    "title": "Enterprise Employee Onboarding Form",
+    "fields": [
+      {
+        "field_id": "company",
+        "label": "Company",
+        "type": "dropdown",
+        "required": true,
+        "dropdown_options": [
+          {
+            "value": "TechCorp",
+            "children": {
+              "field_id": "division",
+              "options": [
+                {
+                  "value": "Product",
+                  "children": {
+                    "field_id": "department",
+                    "options": [
+                      {
+                        "value": "Engineering",
+                        "children": {
+                          "field_id": "role",
+                          "options": [
+                            {
+                              "value": "Frontend",
+                              "children": {
+                                "field_id": "tech_stack",
+                                "options": [
+                                  {
+                                    "value": "React"
+                                  },
+                                  {
+                                    "value": "Vue"
+                                  },
+                                  {
+                                    "value": "Angular"
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              "value": "Backend",
+                              "children": {
+                                "field_id": "tech_stack",
+                                "options": [
+                                  {
+                                    "value": "Node.js"
+                                  },
+                                  {
+                                    "value": "Java"
+                                  },
+                                  {
+                                    "value": "Python"
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "value": "Design",
+                        "children": {
+                          "field_id": "role",
+                          "options": [
+                            {
+                              "value": "UI Designer"
+                            },
+                            {
+                              "value": "UX Researcher"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "value": "Operations",
+                  "children": {
+                    "field_id": "department",
+                    "options": [
+                      {
+                        "value": "HR"
+                      },
+                      {
+                        "value": "Finance"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "value": "BizGroup",
+            "children": {
+              "field_id": "division",
+              "options": [
+                {
+                  "value": "Sales",
+                  "children": {
+                    "field_id": "region",
+                    "options": [
+                      {
+                        "value": "India",
+                        "children": {
+                          "field_id": "state",
+                          "options": [
+                            {
+                              "value": "Kerala",
+                              "children": {
+                                "field_id": "district",
+                                "options": [
+                                  {
+                                    "value": "Alappuzha"
+                                  },
+                                  {
+                                    "value": "Ernakulam"
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              "value": "Tamil Nadu",
+                              "children": {
+                                "field_id": "district",
+                                "options": [
+                                  {
+                                    "value": "Chennai"
+                                  },
+                                  {
+                                    "value": "Coimbatore"
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "value": "USA",
+                        "children": {
+                          "field_id": "state",
+                          "options": [
+                            {
+                              "value": "California"
+                            },
+                            {
+                              "value": "Texas"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "field_id": "division",
+        "label": "Division",
+        "type": "dropdown",
+        "required": true,
+        "parent_field_id": "company",
+        "dropdown_options": []
+      },
+      {
+        "field_id": "department",
+        "label": "Department",
+        "type": "dropdown",
+        "required": true,
+        "parent_field_id": "division",
+        "dropdown_options": []
+      },
+      {
+        "field_id": "role",
+        "label": "Role",
+        "type": "dropdown",
+        "required": true,
+        "parent_field_id": "department",
+        "dropdown_options": []
+      },
+      {
+        "field_id": "tech_stack",
+        "label": "Tech Stack",
+        "type": "dropdown",
+        "required": false,
+        "parent_field_id": "role",
+        "dropdown_options": []
+      },
+      {
+        "field_id": "region",
+        "label": "Region",
+        "type": "dropdown",
+        "required": true,
+        "parent_field_id": "division",
+        "dropdown_options": []
+      },
+      {
+        "field_id": "state",
+        "label": "State",
+        "type": "dropdown",
+        "required": true,
+        "parent_field_id": "region",
+        "dropdown_options": []
+      },
+      {
+        "field_id": "district",
+        "label": "District",
+        "type": "dropdown",
+        "required": true,
+        "parent_field_id": "state",
+        "dropdown_options": []
+      },
+      {
+        "field_id": "work_mode",
+        "label": "Work Mode",
+        "type": "dropdown",
+        "required": true,
+        "dropdown_options": [
+          {
+            "value": "Remote"
+          },
+          {
+            "value": "Hybrid"
+          },
+          {
+            "value": "Onsite"
+          }
+        ]
+      },
+      {
+        "field_id": "shift",
+        "label": "Shift",
+        "type": "dropdown",
+        "required": true,
+        "dropdown_options": [
+          {
+            "value": "Morning"
+          },
+          {
+            "value": "Evening"
+          },
+          {
+            "value": "Night"
+          }
+        ]
+      },
+      {
+        "field_id": "employment_type",
+        "label": "Employment Type",
+        "type": "dropdown",
+        "required": true,
+        "dropdown_options": [
+          {
+            "value": "Full-Time"
+          },
+          {
+            "value": "Part-Time"
+          },
+          {
+            "value": "Contract"
+          },
+          {
+            "value": "Internship"
+          }
+        ]
+      }
+    ]
+  }
+]

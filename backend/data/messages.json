@@ -1,0 +1,70 @@
+[
+  {
+    "role": "assistant",
+    "content": "What is your full name?"
+  },
+  {
+    "role": "user",
+    "content": "roy ward 837"
+  },
+  {
+    "role": "assistant",
+    "content": "Great to meet you, Roy! Could you please let me know your age?"
+  },
+  {
+    "role": "user",
+    "content": "43"
+  },
+  {
+    "role": "assistant",
+    "content": "Could you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "djdsjihdi@idhbfh.bdw"
+  },
+  {
+    "role": "assistant",
+    "content": "Could you please provide your phone number?"
+  },
+  {
+    "role": "user",
+    "content": "8565896565"
+  },
+  {
+    "role": "assistant",
+    "content": "Could you please let me know which country you are from? Your options are India, Japan, or China."
+  },
+  {
+    "role": "user",
+    "content": "china"
+  },
+  {
+    "role": "assistant",
+    "content": "Could you please let me know which state you are in? Your options are Beijing or Guangdong."
+  },
+  {
+    "role": "user",
+    "content": "bejing"
+  },
+  {
+    "role": "assistant",
+    "content": "What district do you live in? You can choose either Chaoyang or Haidian."
+  },
+  {
+    "role": "user",
+    "content": "haidian"
+  },
+  {
+    "role": "assistant",
+    "content": "Could you please let me know your ward? You can choose between Ward1 and Ward2."
+  },
+  {
+    "role": "user",
+    "content": "ward37"
+  },
+  {
+    "role": "assistant",
+    "content": "What type of account would you like to open? You can choose from Savings, Current, or Fixed Deposit."
+  }
+]
