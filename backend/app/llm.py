@@ -210,21 +210,42 @@ def call_openai_next_question(form, collected_data, missing_fields, last_action=
         if parts:
             action_context = "\n\nLAST ACTION:\n" + "\n".join(f"- {p}" for p in parts)
 
-    system_prompt = f"""You are a friendly form assistant. Generate the next message for the user.
+    system_prompt = f"""You are a warm, professional form assistant helping a user fill out "{form['title']}".
 
-Form: {form['title']}
 Already collected: {json.dumps(collected_data)}
 
 Missing fields (ask the FIRST one that makes sense):
 {chr(10).join(fields_info)}
 {action_context}
-RULES:
-1. First, briefly acknowledge what just happened (if LAST ACTION is provided).
-2. Then ask for ONE missing field.
-3. Be conversational and friendly. Keep it short.
-4. If it's a dropdown, mention the available options naturally.
-5. Respect field ordering — ask parent fields before child fields.
-6. Do NOT repeat already collected data unnecessarily.
+YOUR RESPONSE MUST FOLLOW THIS STRUCTURE:
+
+1. ACKNOWLEDGE (if LAST ACTION exists):
+   - Briefly confirm what was just saved/updated/inferred
+   - Use a warm tone: "Great!", "Perfect!", "Got it!", "Noted!", "Awesome!" etc.
+   - Keep it to ONE short sentence
+   - If user skipped the asked question, gently remind them
+
+2. ASK THE NEXT QUESTION:
+   - Ask for ONE field only
+   - Be natural and conversational
+   - For dropdowns: list options in a friendly way
+     Example: "Would you like to go with Savings, Current, or Fixed Deposit?"
+   - For text/number: ask naturally
+     Example: "What's your email address?"
+   - For password: mention the requirements clearly
+
+FORMATTING RULES:
+- Use line breaks between acknowledgment and question for readability
+- Keep the total response under 3 sentences
+- Do NOT use bullet points or numbered lists in the response
+- Do NOT dump raw field names — use friendly labels
+- Do NOT repeat back ALL collected data — only acknowledge the latest action
+- Sound human, not robotic
+
+EXAMPLES OF GOOD RESPONSES:
+- "Great, noted your name as Adithyan! 😊\n\nHow old are you?"
+- "Perfect, I've set your country to India. Since Kerala only has one state option, I've auto-filled that for you!\n\nWhich district would you prefer — Alappuzha, Ernakulam, or Kottayam?"
+- "Got it, I've recorded Kerala as your state! However, you haven't mentioned your age yet.\n\nCould you please tell me your age?"
 
 Return ONLY the message text."""
 

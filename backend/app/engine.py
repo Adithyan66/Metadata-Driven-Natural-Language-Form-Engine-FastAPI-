@@ -200,6 +200,10 @@ def resolve_and_validate(form, candidate_data):
     # 3. Hierarchy consistency
     hierarchy_issues = validate_hierarchy_consistency(form, resolved)
     for hc in hierarchy_issues:
-        conflicts.append({"field": "hierarchy", "reason": hc})
+        conflicts.append({
+            "field": "hierarchy",
+            "reason": hc["reason"],
+            "involved_fields": hc["involved_fields"],
+        })
 
     return resolved, all_inferred, conflicts, all_removed

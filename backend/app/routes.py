@@ -299,9 +299,43 @@ def chat(req: ChatRequest):
     auto_filled.update(inferred)
 
     if all_conflicts or invalid_fields:
-        # REJECT — existing state is immutable
+        # Identify which NEW fields are involved in conflicts
+        conflicting_field_ids = set()
+        for c in all_conflicts:
+            # Fields directly named in the conflict
+            if c.get("field") and c["field"] != "hierarchy":
+                conflicting_field_ids.add(c["field"])
+            # triggered_by field
+            if c.get("triggered_by", {}).get("field"):
+                conflicting_field_ids.add(c["triggered_by"]["field"])
+            # involved_fields from hierarchy conflicts
+            for fid in c.get("involved_fields", []):
+                conflicting_field_ids.add(fid)
+        # Also mark per-field invalid fields
+        for inv in invalid_fields:
+            conflicting_field_ids.add(inv["field_id"])
+
+        # Split pending_data into clean (not in any conflict) vs conflicting
+        clean_fields = {}
+        for fid, val in pending_data.items():
+            if fid not in conflicting_field_ids:
+                clean_fields[fid] = val
+
+        # Partial commit: store clean fields that pass validation on their own
+        if clean_fields:
+            partial_candidate = dict(collected_data)
+            partial_candidate.update(clean_fields)
+            # Re-validate just the clean subset (no conflicting fields)
+            _, partial_inferred, partial_conflicts, _ = resolve_and_validate(form, partial_candidate)
+            if not partial_conflicts:
+                # Clean fields are valid — commit them
+                collected_data = partial_candidate
+                collected_data.update(partial_inferred)
+                auto_filled.update(partial_inferred)
+
         write_json("collected_data.json", collected_data)
 
+        # Build error details for rejected fields only
         all_errors = []
         for c in all_conflicts:
             all_errors.append({"field_id": c["field"], "value": c.get("value"), "error": c["reason"]})
@@ -309,11 +343,20 @@ def chat(req: ChatRequest):
 
         conflict_suggestions = build_conflict_suggestions(form, all_conflicts, resolved_data) if all_conflicts else []
 
-        error_msg = call_openai_error_message(form, all_errors, req.message, collected_data)
         missing = get_missing_fields(form, collected_data)
 
+        # Build last_action for what WAS stored
+        last_action = {}
+        stored_clean = {fid: collected_data[fid] for fid in clean_fields if fid in collected_data}
+        if stored_clean:
+            last_action["stored"] = stored_clean
+        inferred_clean = {k: v for k, v in auto_filled.items() if k not in pending_data and k in collected_data}
+        if inferred_clean:
+            last_action["inferred"] = inferred_clean
+
+        error_msg = call_openai_error_message(form, all_errors, req.message, collected_data)
         if missing:
-            next_q = call_openai_next_question(form, collected_data, missing)
+            next_q = call_openai_next_question(form, collected_data, missing, last_action=last_action if last_action else None)
             response_msg = error_msg + "\n\n" + next_q
         else:
             response_msg = error_msg
@@ -324,13 +367,14 @@ def chat(req: ChatRequest):
         write_json("messages.json", messages)
         _save_currently_asking(form, collected_data)
 
+        new_asking, _ = get_currently_asking(form, collected_data)
         result = {
             "status": status,
             "message": response_msg,
             "collected_data": _mask_sensitive(form, collected_data),
             "missing_fields": missing,
             "invalid_fields": invalid_fields,
-            "suggestions": conflict_suggestions + get_suggestions(form, collected_data, missing, invalid_fields, currently_asking=currently_asking),
+            "suggestions": conflict_suggestions + get_suggestions(form, collected_data, missing, invalid_fields, currently_asking=new_asking),
         }
         if all_conflicts:
             result["conflicts"] = [{"field": c["field"], "reason": c["reason"]} for c in all_conflicts]

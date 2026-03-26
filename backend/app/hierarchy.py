@@ -315,7 +315,9 @@ def check_hierarchy_conflict(form, field_id, value, collected_data):
 
 
 def validate_hierarchy_consistency(form, collected_data):
-    """Check that all collected hierarchical fields form a valid path."""
+    """Check that all collected hierarchical fields form a valid path.
+    Returns list of dicts: {reason, involved_fields: [field_id, ...]}.
+    """
     conflicts = []
     for field in form["fields"]:
         if field["type"] != "dropdown" or not field.get("parent_field_id"):
@@ -333,8 +335,11 @@ def validate_hierarchy_consistency(form, collected_data):
             for m in child_matches
         )
         if not valid:
-            conflicts.append(
-                f"'{child_val}' ({child_fid}) does not belong to "
-                f"'{parent_val}' ({parent_fid})."
-            )
+            conflicts.append({
+                "reason": (
+                    f"'{child_val}' ({child_fid}) does not belong to "
+                    f"'{parent_val}' ({parent_fid})."
+                ),
+                "involved_fields": [child_fid, parent_fid],
+            })
     return conflicts
