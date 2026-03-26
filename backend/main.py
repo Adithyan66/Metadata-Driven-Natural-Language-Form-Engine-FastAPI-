@@ -233,6 +233,295 @@ def get_field(form, field_id):
     return None
 
 
+# --- Dependency graph & inference engine ---
+
+def build_dependency_graph(form):
+    """Build a dependency graph from metadata. Returns:
+    - hierarchy_deps: {child_field_id: parent_field_id} from parent_field_id
+    - conditional_deps: {field_id: [condition_field_id, ...]} from conditional_rules
+    Both are metadata-driven, no hardcoded field names.
+    """
+    hierarchy_deps = {}   # child → parent (state → country)
+    conditional_deps = {}  # field → [fields it depends on] (age → [country])
+
+    for field in form["fields"]:
+        fid = field["field_id"]
+
+        # Hierarchy: parent_field_id → dependency
+        if field.get("parent_field_id"):
+            hierarchy_deps[fid] = field["parent_field_id"]
+
+        # Conditional rules: "if" field → dependency
+        for rule in field.get("validation_rules", {}).get("conditional_rules", []):
+            cond_field = rule.get("if", {}).get("field")
+            if cond_field:
+                if fid not in conditional_deps:
+                    conditional_deps[fid] = []
+                if cond_field not in conditional_deps[fid]:
+                    conditional_deps[fid].append(cond_field)
+
+    return hierarchy_deps, conditional_deps
+
+
+def infer_parents_from_hierarchy(form, data):
+    """Forward inference: if a child value is set but parent is not,
+    infer the parent value from the hierarchy tree.
+    e.g., state=Kerala → infer country=India (if unambiguous).
+    Returns dict of inferred {field_id: value} — does NOT modify data.
+    """
+    inferred = {}
+
+    for field in form["fields"]:
+        fid = field["field_id"]
+        if field.get("type") != "dropdown" or not field.get("parent_field_id"):
+            continue
+        if fid not in data:
+            continue
+
+        # Walk up the ancestor chain, inferring missing parents
+        child_fid = fid
+        child_val = data[child_fid]
+
+        while True:
+            child_field = get_field(form, child_fid)
+            if not child_field or not child_field.get("parent_field_id"):
+                break
+            parent_fid = child_field["parent_field_id"]
+
+            # If parent already known (in data or already inferred), stop
+            if parent_fid in data or parent_fid in inferred:
+                break
+
+            # Find what parent values are compatible with child_val
+            matches = find_value_in_hierarchy(form, child_val)
+            parent_values = set()
+            for m in matches:
+                if m["field_id"] == child_fid:
+                    parent_val = m.get("parents", {}).get(parent_fid)
+                    if parent_val:
+                        parent_values.add(parent_val)
+
+            if len(parent_values) == 1:
+                # Unambiguous → infer
+                inferred[parent_fid] = parent_values.pop()
+                # Continue up the chain from the inferred parent
+                child_fid = parent_fid
+                child_val = inferred[parent_fid]
+            else:
+                # Ambiguous or no match → can't infer, stop
+                break
+
+    return inferred
+
+
+def _get_ambiguous_parents(form, data):
+    """Find fields with ambiguous parent inference.
+    Returns {parent_field_id: [possible_value_1, possible_value_2, ...]}
+    """
+    ambiguous = {}
+    for field in form["fields"]:
+        fid = field["field_id"]
+        if field.get("type") != "dropdown" or not field.get("parent_field_id"):
+            continue
+        if fid not in data:
+            continue
+        parent_fid = field["parent_field_id"]
+        if parent_fid in data:
+            continue  # parent already known
+
+        matches = find_value_in_hierarchy(form, data[fid])
+        parent_values = set()
+        for m in matches:
+            if m["field_id"] == fid:
+                pv = m.get("parents", {}).get(parent_fid)
+                if pv:
+                    parent_values.add(pv)
+
+        if len(parent_values) > 1:
+            ambiguous[parent_fid] = list(parent_values)
+
+    return ambiguous
+
+
+def resolve_and_validate(form, candidate_data):
+    """Fixpoint validation loop:
+    1. Infer missing parent fields from hierarchy (unambiguous only)
+    2. For ambiguous parents, test ALL possibilities
+    3. Re-validate ALL fields with full context
+    4. Check conditional rules + hierarchy consistency
+    5. Repeat until stable (fixpoint)
+
+    Returns (resolved_data, inferred, conflicts):
+    - resolved_data: candidate + inferred values
+    - inferred: {field_id: value} of inferred-only fields
+    - conflicts: list of conflict dicts (empty = valid)
+    """
+    resolved = dict(candidate_data)
+    all_inferred = {}
+
+    # Fixpoint loop — iterate until no new inferences
+    for _ in range(10):  # safety bound
+        new_inferred = infer_parents_from_hierarchy(form, resolved)
+        fresh = {k: v for k, v in new_inferred.items() if k not in resolved}
+        if not fresh:
+            break
+        resolved.update(fresh)
+        all_inferred.update(fresh)
+
+    conflicts = []
+
+    # 1. Cross-field conditional conflicts (with inferred context)
+    for field in form["fields"]:
+        fid = field["field_id"]
+        if fid not in resolved:
+            continue
+        if field.get("type") == "dropdown":
+            continue
+        if not field.get("validation_rules", {}).get("conditional_rules"):
+            continue
+
+        value = resolved[fid]
+        is_valid, error = validate_field(form, fid, value, resolved)
+        if not is_valid:
+            triggered_by = _find_trigger_from_conditions(field, resolved)
+            conflicts.append({
+                "field": fid,
+                "value": value,
+                "reason": error + (f" (due to {triggered_by['field']}={triggered_by['value']})" if triggered_by else ""),
+                "triggered_by": triggered_by,
+            })
+
+    # 2. Ambiguous parent validation:
+    # If a parent couldn't be inferred (ambiguous), test the field against
+    # ALL possible parents. If invalid under EVERY possibility → reject.
+    ambiguous = _get_ambiguous_parents(form, resolved)
+    for parent_fid, possible_values in ambiguous.items():
+        # Check each field with conditional_rules that depends on this parent
+        for field in form["fields"]:
+            fid = field["field_id"]
+            if fid not in resolved:
+                continue
+            cond_rules = field.get("validation_rules", {}).get("conditional_rules", [])
+            depends_on_parent = any(
+                r.get("if", {}).get("field") == parent_fid for r in cond_rules
+            )
+            if not depends_on_parent:
+                continue
+
+            # Already caught above with inferred context
+            if parent_fid in resolved:
+                continue
+
+            value = resolved[fid]
+            # Test against each possible parent value
+            valid_under_any = False
+            failing_reasons = []
+            for pv in possible_values:
+                test_data = {**resolved, parent_fid: pv}
+                is_valid, error = validate_field(form, fid, value, test_data)
+                if is_valid:
+                    valid_under_any = True
+                    break
+                failing_reasons.append(f"{parent_fid}={pv}: {error}")
+
+            if not valid_under_any:
+                parent_field = get_field(form, parent_fid)
+                parent_label = parent_field["label"] if parent_field else parent_fid
+                conflicts.append({
+                    "field": fid,
+                    "value": value,
+                    "reason": (
+                        f"{field['label']}={value} is invalid for all possible "
+                        f"{parent_label} values ({', '.join(possible_values)})"
+                    ),
+                    "triggered_by": {"field": parent_fid, "value": ", ".join(possible_values)},
+                })
+
+    # 3. Hierarchy consistency
+    hierarchy_issues = validate_hierarchy_consistency(form, resolved)
+    for hc in hierarchy_issues:
+        conflicts.append({"field": "hierarchy", "reason": hc})
+
+    return resolved, all_inferred, conflicts
+
+
+# --- Conditional rule helpers ---
+
+def resolve_rules(field, collected_data):
+    """Resolve validation rules for a field, applying conditional overrides.
+    Returns the effective rules dict after merging any matching conditional rules.
+    """
+    base_rules = dict(field.get("validation_rules", {}))
+    conditional_rules = base_rules.pop("conditional_rules", [])
+
+    for rule in conditional_rules:
+        condition = rule.get("if", {})
+        cond_field = condition.get("field")
+        cond_value = condition.get("equals")
+        if cond_field and cond_field in collected_data:
+            if str(collected_data[cond_field]).lower() == str(cond_value).lower():
+                base_rules.update(rule.get("then", {}))
+
+    return base_rules
+
+
+def _find_trigger_from_conditions(field, collected_data):
+    """Find which conditional rule's condition is currently active for this field."""
+    for rule in field.get("validation_rules", {}).get("conditional_rules", []):
+        condition = rule.get("if", {})
+        cond_field = condition.get("field")
+        cond_value = condition.get("equals")
+        if cond_field and cond_field in collected_data:
+            if str(collected_data[cond_field]).lower() == str(cond_value).lower():
+                return {"field": cond_field, "value": collected_data[cond_field]}
+    return None
+
+
+def build_conflict_suggestions(form, conflicts, collected_data):
+    """Build smart user guidance for resolving conflicts.
+    Fully metadata-driven — reads conflict details and suggests fixes.
+    """
+    suggestions = []
+    for conflict in conflicts:
+        fid = conflict.get("field")
+        field = get_field(form, fid) if fid else None
+
+        if field:
+            suggestions.append(f"Change {field['label']} to a valid value")
+
+        triggered_by = conflict.get("triggered_by")
+        if triggered_by:
+            trigger_field = get_field(form, triggered_by["field"])
+            if trigger_field:
+                alt_values = _get_alternative_values(form, triggered_by["field"], triggered_by["value"], collected_data)
+                if alt_values:
+                    suggestions.append(
+                        f"Change {trigger_field['label']} to {' or '.join(alt_values)}"
+                    )
+
+    return suggestions
+
+
+def _get_alternative_values(form, field_id, current_value, collected_data):
+    """Get alternative values for a field (excluding the current one)."""
+    field = get_field(form, field_id)
+    if not field:
+        return []
+
+    if field["type"] == "dropdown":
+        valid_opts = get_valid_dropdown_values(form, field_id, collected_data)
+        if valid_opts:
+            return [v for v in valid_opts if v.lower() != str(current_value).lower()]
+
+    alt_values = set()
+    for f in form["fields"]:
+        for rule in f.get("validation_rules", {}).get("conditional_rules", []):
+            cond = rule.get("if", {})
+            if cond.get("field") == field_id and str(cond.get("equals", "")).lower() != str(current_value).lower():
+                alt_values.add(cond["equals"])
+    return list(alt_values)
+
+
 # --- Validation ---
 
 def validate_field(form, field_id, value, collected_data):
@@ -244,7 +533,7 @@ def validate_field(form, field_id, value, collected_data):
         return False, f"Unknown field: {field_id}"
 
     field_type = field.get("type", "text")
-    rules = field.get("validation_rules", {})
+    rules = resolve_rules(field, collected_data)
 
     # Type check
     if field_type == "number":
@@ -270,6 +559,15 @@ def validate_field(form, field_id, value, collected_data):
             if not re.match(rules["regex"], value):
                 desc = rules.get("regex_description", f"matching pattern {rules['regex']}")
                 return False, f"{field['label']} must be {desc}."
+
+    # Password validation — fully metadata-driven via regex
+    if field_type == "password":
+        value = str(value)
+        if "regex" in rules:
+            if not re.match(rules["regex"], value):
+                desc = rules.get("regex_description", f"matching pattern {rules['regex']}")
+                return False, f"{field['label']} must have {desc}."
+        return True, None
 
     # Dropdown validation
     if field_type == "dropdown":
@@ -498,6 +796,46 @@ def get_missing_fields(form, collected_data):
     return missing
 
 
+def get_suggestions(form, collected_data, missing_fields, invalid_fields=None):
+    """Generate suggestions ONLY for dropdown fields that are immediately relevant:
+    - The next missing field (only if it's a dropdown)
+    - Any invalid dropdown fields
+    Never suggest for non-dropdown fields (text, number, password).
+    """
+    suggestions = []
+    target_field_ids = []
+
+    # Suggest for invalid dropdown fields
+    if invalid_fields:
+        for inv in invalid_fields:
+            field = get_field(form, inv["field_id"])
+            if field and field["type"] == "dropdown":
+                target_field_ids.append(inv["field_id"])
+
+    # Suggest for the NEXT missing field — only if it's a dropdown
+    if missing_fields:
+        next_fid = missing_fields[0]
+        next_field = get_field(form, next_fid)
+        if next_field and next_field["type"] == "dropdown":
+            if next_fid not in target_field_ids:
+                target_field_ids.append(next_fid)
+
+    for fid in target_field_ids:
+        field = get_field(form, fid)
+        if not field:
+            continue
+
+        valid_opts = get_valid_dropdown_values(form, fid, collected_data)
+        if valid_opts:
+            suggestions.append({
+                "field_id": fid,
+                "label": field["label"],
+                "options": valid_opts,
+            })
+
+    return suggestions
+
+
 # --- OpenAI calls ---
 
 def call_openai_extract(user_message, form, collected_data, last_question):
@@ -535,8 +873,12 @@ RULES:
 3. Return STRICT JSON object with field_id as keys and extracted values.
 4. For number fields, return actual numbers not strings.
 5. Do NOT make up or guess values. Only extract what the user actually said.
-6. Do NOT re-extract already collected fields unless the user is explicitly correcting them.
+6. If the user wants to UPDATE/CHANGE an already collected field (e.g., "change age to 30", "set country to Japan",
+   "update my name to X"), extract that field with the new value — even if it was already collected.
+   Also set "_intent": "update" in the JSON.
 7. If you cannot extract any field, return empty object {{}}.
+8. SENSITIVE FIELDS (type=password): Do NOT extract password fields. Return them as empty string "".
+   Password values will be handled separately for security. NEVER guess or generate a password.
 
 IMPORTANT: Every piece of data the user provides is valuable. Never ignore a field value
 just because it wasn't the current question. Extract everything recognizable.
@@ -573,6 +915,10 @@ def call_openai_next_question(form, collected_data, missing_fields, auto_filled=
                 else:
                     # No valid options available yet — skip this field for now
                     continue
+            if field["type"] == "password":
+                pw_rules = field.get("validation_rules", {})
+                reqs_text = pw_rules.get("regex_description", "a secure password")
+                info += f" [PASSWORD FIELD - ask user to set a password with {reqs_text}. Do NOT suggest any password.]"
             fields_info.append(info)
 
     if not fields_info:
@@ -676,6 +1022,7 @@ def select_form(req: SelectFormRequest):
         "collected_data": {},
         "missing_fields": missing,
         "invalid_fields": [],
+        "suggestions": get_suggestions(form, {}, missing),
     }
 
 
@@ -711,11 +1058,39 @@ def chat(req: ChatRequest):
     extracted = call_openai_extract(req.message, form, collected_data, last_question)
 
     print('openai extracted',extracted)
-    # Step 3: Validate — process in form field order, with running snapshot
-    valid_data = {}
+
+    # Detect intent (update vs normal)
+    intent = extracted.pop("_intent", "normal")
+    is_update = intent == "update"
+
+    # Step 2b: Handle sensitive fields (password) — use exact user input, not LLM output
+    password_field_ids = [f["field_id"] for f in form["fields"] if f.get("type") == "password"]
+    is_password_question = False
+    for fid in password_field_ids:
+        if fid not in collected_data:
+            # Remove any LLM-extracted password (it may hallucinate)
+            extracted.pop(fid, None)
+            # Check if the password field is the next expected field
+            missing_now = get_missing_fields(form, collected_data)
+            if missing_now and missing_now[0] == fid:
+                is_password_question = True
+                # Use raw user message as the password value
+                extracted[fid] = req.message.strip()
+                # Clear all other extracted fields — when answering a password question,
+                # the entire message IS the password, not other field data
+                extracted = {fid: extracted[fid]}
+
+    # ===== ATOMIC TRANSACTION: validate everything before storing anything =====
+    #
+    # Phase 1: Filter & normalize extracted fields (no storage)
+    # Phase 2: Build candidate state with ALL new fields applied
+    # Phase 3: Validate candidate as a whole (cross-field + conditional + hierarchy)
+    # Phase 4: COMMIT only if everything passes, else ROLLBACK entire batch
+
+    # --- Phase 1: Filter, normalize, check field priority ---
+    pending_data = {}  # fields that passed basic checks, NOT yet stored
     invalid_fields = []
 
-    # Sort extracted fields by their position in the form definition
     field_order = {f["field_id"]: i for i, f in enumerate(form["fields"])}
     sorted_fields = sorted(
         extracted.items(),
@@ -723,20 +1098,34 @@ def chat(req: ChatRequest):
     )
 
     for field_id, value in sorted_fields:
-        # Skip None/empty values from LLM extraction
         if value is None or value == "":
             continue
 
-        # Skip already collected fields (first valid wins)
-        if field_id in collected_data:
+        # Field priority: first valid value is preserved unless explicit update
+        if field_id in collected_data and not is_update:
+            existing = collected_data[field_id]
+            if str(existing).lower() == str(value).lower():
+                continue
+            field = get_field(form, field_id)
+            label = field["label"] if field else field_id
+            invalid_fields.append({
+                "field_id": field_id,
+                "value": value,
+                "error": (
+                    f"You already provided {label} as '{existing}'. "
+                    f"If you want to change it, say 'change {label.lower()} to {value}'."
+                ),
+            })
             continue
 
-        # Use running snapshot: original collected + already validated in this batch
-        running_data = {**collected_data, **valid_data}
+        # Basic per-field validation (type, format, regex, dropdown options)
+        running_data = {**collected_data, **pending_data}
+        if is_update and field_id in running_data:
+            running_data.pop(field_id)
 
         is_valid, error = validate_field(form, field_id, value, running_data)
         if is_valid:
-            # Re-resolve correct casing for dropdowns
+            # Normalize value (correct casing for dropdowns, type for numbers)
             field = get_field(form, field_id)
             if field and field["type"] == "dropdown":
                 valid_opts = get_valid_dropdown_values(form, field_id, running_data)
@@ -751,94 +1140,213 @@ def chat(req: ChatRequest):
                         value = float(value)
                 except (ValueError, TypeError):
                     pass
-            valid_data[field_id] = value
+            pending_data[field_id] = value
         else:
             invalid_fields.append({"field_id": field_id, "value": value, "error": error})
 
-    # Step 4: Store valid data
-    collected_data.update(valid_data)
+    # --- Phase 2: Build candidate state (collected + ALL pending) ---
+    candidate_data = dict(collected_data)
 
-    # Step 4b: Auto-fill dropdown fields that have exactly one valid option
+    if is_update and pending_data:
+        for updated_fid in pending_data:
+            field_def = get_field(form, updated_fid)
+            if field_def and field_def["type"] == "dropdown":
+                descendants = get_all_descendant_field_ids(form, updated_fid)
+                for desc_fid in descendants:
+                    candidate_data.pop(desc_fid, None)
+
+    candidate_data.update(pending_data)
+
+    # Auto-fill dropdown fields that have exactly one valid option
     auto_filled = {}
     changed = True
     while changed:
         changed = False
         for field in form["fields"]:
             fid = field["field_id"]
-            if fid in collected_data or field["type"] != "dropdown":
+            if fid in candidate_data or field["type"] != "dropdown":
                 continue
-            valid_opts = get_valid_dropdown_values(form, fid, collected_data)
+            valid_opts = get_valid_dropdown_values(form, fid, candidate_data)
             if valid_opts and len(valid_opts) == 1:
-                collected_data[fid] = valid_opts[0]
+                candidate_data[fid] = valid_opts[0]
                 auto_filled[fid] = valid_opts[0]
-                changed = True  # Re-check — filling one field may narrow others
+                changed = True
 
+    # --- Phase 3: Fixpoint resolve + validate atomically ---
+    # 1. Infer missing parents (state=Kerala → country=India)
+    # 2. Re-validate ALL fields with full inferred context
+    # 3. Repeat until stable (fixpoint)
+    resolved_data, inferred, all_conflicts = resolve_and_validate(form, candidate_data)
+
+    # Track which fields were inferred (not explicitly provided by user)
+    auto_filled.update(inferred)
+
+    if all_conflicts:
+        # Conflicts detected — smart resolution:
+        # NEW fields (user's latest intent) → KEEP
+        # OLD fields that conflict → REMOVE and ask user to re-enter
+
+        new_field_ids = set(pending_data.keys()) | set(inferred.keys())
+        conflicting_old_fields = set()
+
+        for conflict in all_conflicts:
+            cfid = conflict.get("field")
+            if cfid and cfid in collected_data and cfid not in new_field_ids:
+                conflicting_old_fields.add(cfid)
+
+        if conflicting_old_fields:
+            # Remove conflicting old fields, keep new ones
+            for old_fid in conflicting_old_fields:
+                resolved_data.pop(old_fid, None)
+
+            # Re-validate after removal
+            resolved_data, _, remaining_conflicts = resolve_and_validate(form, resolved_data)
+
+            if not remaining_conflicts:
+                # Resolved — commit with old fields removed
+                collected_data = resolved_data
+                write_json("collected_data.json", collected_data)
+
+                removed_labels = []
+                for old_fid in conflicting_old_fields:
+                    f = get_field(form, old_fid)
+                    removed_labels.append(f"{f['label']} (was '{collected_data.get(old_fid, collected_data.get(old_fid))}' )" if f else old_fid)
+                    # Use original value for the message
+                for old_fid in conflicting_old_fields:
+                    f = get_field(form, old_fid)
+
+                removed_msgs = []
+                for old_fid in conflicting_old_fields:
+                    f = get_field(form, old_fid)
+                    old_val = collected_data.get(old_fid) or (pending_data.get(old_fid)) or "unknown"
+                    label = f["label"] if f else old_fid
+                    removed_msgs.append(f"{label}")
+
+                conflict_note = (
+                    f"Your input conflicts with: {', '.join(removed_msgs)}. "
+                    f"Those values have been cleared — please re-enter them with valid values."
+                )
+
+                missing = get_missing_fields(form, collected_data)
+                if missing:
+                    next_q = call_openai_next_question(form, collected_data, missing, auto_filled=auto_filled)
+                    response_msg = conflict_note + "\n\n" + next_q
+                else:
+                    response_msg = conflict_note
+
+                messages.append({"role": "assistant", "content": response_msg})
+                write_json("messages.json", messages)
+
+                safe_collected = dict(collected_data)
+                for field in form["fields"]:
+                    if field.get("type") == "password" and field["field_id"] in safe_collected:
+                        safe_collected[field["field_id"]] = "********"
+
+                return {
+                    "status": "pending",
+                    "message": response_msg,
+                    "collected_data": safe_collected,
+                    "missing_fields": missing,
+                    "invalid_fields": invalid_fields,
+                    "suggestions": get_suggestions(form, collected_data, missing, invalid_fields),
+                }
+
+            # Still conflicts after removal — use remaining_conflicts
+            all_conflicts = remaining_conflicts
+
+        # Full rollback — nothing from this batch is stored
+        write_json("collected_data.json", collected_data)
+
+        conflict_suggestions = build_conflict_suggestions(form, all_conflicts, resolved_data)
+        all_errors = [{"field_id": c["field"], "value": c.get("value"), "error": c["reason"]} for c in all_conflicts]
+        all_errors.extend(invalid_fields)
+
+        error_msg = call_openai_error_message(form, all_errors, req.message, collected_data)
+        missing = get_missing_fields(form, collected_data)
+
+        if missing:
+            next_q = call_openai_next_question(form, collected_data, missing)
+            response_msg = error_msg + "\n\n" + next_q
+        else:
+            response_msg = error_msg
+
+        messages.append({"role": "assistant", "content": response_msg})
+        write_json("messages.json", messages)
+
+        safe_collected = dict(collected_data)
+        for field in form["fields"]:
+            if field.get("type") == "password" and field["field_id"] in safe_collected:
+                safe_collected[field["field_id"]] = "********"
+
+        return {
+            "status": "conflict",
+            "message": response_msg,
+            "collected_data": safe_collected,
+            "missing_fields": missing,
+            "invalid_fields": invalid_fields,
+            "conflicts": [{"field": c["field"], "reason": c["reason"]} for c in all_conflicts],
+            "suggestions": conflict_suggestions + get_suggestions(form, collected_data, missing, invalid_fields),
+        }
+
+    if invalid_fields:
+        # Per-field validation errors only → rollback
+        write_json("collected_data.json", collected_data)
+
+        error_msg = call_openai_error_message(form, invalid_fields, req.message, collected_data)
+        missing = get_missing_fields(form, collected_data)
+        if missing:
+            next_q = call_openai_next_question(form, collected_data, missing)
+            response_msg = error_msg + "\n\n" + next_q
+        else:
+            response_msg = error_msg
+
+        messages.append({"role": "assistant", "content": response_msg})
+        write_json("messages.json", messages)
+
+        safe_collected = dict(collected_data)
+        for field in form["fields"]:
+            if field.get("type") == "password" and field["field_id"] in safe_collected:
+                safe_collected[field["field_id"]] = "********"
+
+        return {
+            "status": "pending",
+            "message": response_msg,
+            "collected_data": safe_collected,
+            "missing_fields": missing,
+            "invalid_fields": invalid_fields,
+            "suggestions": get_suggestions(form, collected_data, missing, invalid_fields),
+        }
+
+    # --- Phase 4: COMMIT — all validations passed, no conflicts ---
+    collected_data = resolved_data
     write_json("collected_data.json", collected_data)
 
-    # Step 5: Determine response
+    # Step 5: Determine response (we only reach here if Phase 3 passed — state is clean)
     missing = get_missing_fields(form, collected_data)
 
     if not missing:
-        # All fields present — verify hierarchy consistency before completing
-        hierarchy_conflicts = validate_hierarchy_consistency(form, collected_data)
-        if hierarchy_conflicts:
-            # Hierarchy is inconsistent — ask user to fix
-            # Find which fields need correction
-            conflict_field_ids = []
-            for field in form["fields"]:
-                if field["type"] == "dropdown" and field.get("parent_field_id"):
-                    child_fid = field["field_id"]
-                    parent_fid = field["parent_field_id"]
-                    if child_fid in collected_data and parent_fid in collected_data:
-                        child_val = collected_data[child_fid]
-                        parent_val = collected_data[parent_fid]
-                        child_matches = find_value_in_hierarchy(form, child_val)
-                        valid = any(
-                            m["field_id"] == child_fid and
-                            m.get("parents", {}).get(parent_fid, "").lower() == parent_val.lower()
-                            for m in child_matches
-                        )
-                        if not valid:
-                            conflict_field_ids.append(child_fid)
-            error_msg = call_openai_error_message(
-                form,
-                [{"field_id": fid, "value": collected_data[fid],
-                  "error": c} for fid, c in zip(conflict_field_ids, hierarchy_conflicts)],
-                req.message,
-                collected_data,
-            )
-            # Remove conflicting child fields so user can re-enter
-            for fid in conflict_field_ids:
-                collected_data.pop(fid, None)
-            write_json("collected_data.json", collected_data)
-            missing = get_missing_fields(form, collected_data)
-            next_q = call_openai_next_question(form, collected_data, missing)
-            response_msg = error_msg + "\n\n" + next_q
-            status = "pending"
-        else:
-            response_msg = "All information has been collected. Thank you!"
-            status = "complete"
-    elif invalid_fields:
-        # Some fields were invalid — generate helpful error
-        error_msg = call_openai_error_message(form, invalid_fields, req.message, collected_data)
-        # Also ask next question if there are still missing fields
-        next_q = call_openai_next_question(form, collected_data, missing, auto_filled=auto_filled)
-        response_msg = error_msg + "\n\n" + next_q
-        status = "pending"
+        response_msg = "All information has been collected. Thank you!"
+        status = "complete"
     else:
-        # Ask next question
         response_msg = call_openai_next_question(form, collected_data, missing, auto_filled=auto_filled)
         status = "pending"
 
     messages.append({"role": "assistant", "content": response_msg})
     write_json("messages.json", messages)
 
+    # Mask sensitive fields in the response
+    safe_collected = dict(collected_data)
+    for field in form["fields"]:
+        if field.get("type") == "password" and field["field_id"] in safe_collected:
+            safe_collected[field["field_id"]] = "********"
+
     return {
         "status": status,
         "message": response_msg,
-        "collected_data": collected_data,
+        "collected_data": safe_collected,
         "missing_fields": missing,
         "invalid_fields": invalid_fields,
+        "suggestions": get_suggestions(form, collected_data, missing, invalid_fields),
     }
 
 

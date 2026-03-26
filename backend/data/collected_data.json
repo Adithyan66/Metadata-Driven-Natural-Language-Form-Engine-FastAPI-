@@ -1,10 +1,12 @@
 {
-  "full_name": "roy ward",
-  "age": 43,
-  "email": "djdsjihdi@idhbfh.bdw",
-  "phone": "8565896565",
+  "full_name": "adithyan",
+  "age": 25,
+  "ward": "Ward200",
   "country": "China",
-  "state": "Beijing",
-  "district": "Haidian",
-  "ward": "Ward1"
+  "state": "Guangdong",
+  "district": "Shenzhen",
+  "email": "aidhi@igd.doid",
+  "phone": "8789565475",
+  "account_type": "Fixed Deposit",
+  "password": "Adhi@123"
 }

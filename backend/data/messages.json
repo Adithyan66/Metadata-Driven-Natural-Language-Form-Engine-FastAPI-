@@ -5,15 +5,63 @@
   },
   {
     "role": "user",
-    "content": "roy ward 837"
+    "content": "adithyan 10 kerala"
   },
   {
     "role": "assistant",
-    "content": "Great to meet you, Roy! Could you please let me know your age?"
+    "content": "It looks like there was an issue with the age you provided. The age of 10 is not valid for opening a bank account in India or Japan. Please enter an age that is at least 18 years old to proceed. Thank you!\n\nWhat is your full name?"
   },
   {
     "role": "user",
-    "content": "43"
+    "content": "ok"
+  },
+  {
+    "role": "assistant",
+    "content": "What is your full name?"
+  },
+  {
+    "role": "user",
+    "content": "adithyan"
+  },
+  {
+    "role": "assistant",
+    "content": "Great to meet you, Adithyan! Can you please tell me your age?"
+  },
+  {
+    "role": "user",
+    "content": "ward200"
+  },
+  {
+    "role": "assistant",
+    "content": "Great to meet you, Adithyan! Can you please tell me your age?"
+  },
+  {
+    "role": "user",
+    "content": "age 25 ward200"
+  },
+  {
+    "role": "assistant",
+    "content": "Great! I've auto-filled your country as China, state as Guangdong, and district as Shenzhen. Now, could you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "chnage age to 10"
+  },
+  {
+    "role": "assistant",
+    "content": "It looks like there was an issue with the age you provided. The minimum age required to open a bank account is 16. Please choose an age that is 16 or older, and I'll be happy to help you update your form!\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "chnage country to india"
+  },
+  {
+    "role": "assistant",
+    "content": "It looks like there was an issue when trying to change your country to India. The state you provided, Guangdong, does not belong to India. To fix this, you can either choose a different state that belongs to India or keep your current country as China. Please let me know how you would like to proceed!\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "China"
   },
   {
     "role": "assistant",
@@ -21,50 +69,34 @@
   },
   {
     "role": "user",
-    "content": "djdsjihdi@idhbfh.bdw"
-  },
-  {
-    "role": "assistant",
-    "content": "Could you please provide your phone number?"
-  },
-  {
-    "role": "user",
-    "content": "8565896565"
-  },
-  {
-    "role": "assistant",
-    "content": "Could you please let me know which country you are from? Your options are India, Japan, or China."
-  },
-  {
-    "role": "user",
-    "content": "china"
-  },
-  {
-    "role": "assistant",
-    "content": "Could you please let me know which state you are in? Your options are Beijing or Guangdong."
-  },
-  {
-    "role": "user",
-    "content": "bejing"
-  },
-  {
-    "role": "assistant",
-    "content": "What district do you live in? You can choose either Chaoyang or Haidian."
-  },
-  {
-    "role": "user",
-    "content": "haidian"
-  },
-  {
-    "role": "assistant",
-    "content": "Could you please let me know your ward? You can choose between Ward1 and Ward2."
-  },
-  {
-    "role": "user",
-    "content": "ward37"
+    "content": "aidhi@igd.doid 8789565475"
   },
   {
     "role": "assistant",
     "content": "What type of account would you like to open? You can choose from Savings, Current, or Fixed Deposit."
+  },
+  {
+    "role": "user",
+    "content": "Fixed Deposit"
+  },
+  {
+    "role": "assistant",
+    "content": "Could you please set a password for your account? It should be at least 6 characters long, with one uppercase letter and one special symbol."
+  },
+  {
+    "role": "user",
+    "content": "Adhioha"
+  },
+  {
+    "role": "assistant",
+    "content": "Hello! It looks like the password you provided, \"Adhioha,\" doesn't meet the required criteria. To successfully create your bank account, please make sure your password has at least 6 characters, includes at least one uppercase letter, and contains at least one special symbol (like @, #, $, etc.). \n\nOnce you update your password to meet these requirements, we can proceed with your application. Thank you!\n\nCould you please set a password for your account? It should be at least 6 characters long, include one uppercase letter, and have one special symbol."
+  },
+  {
+    "role": "user",
+    "content": "Adhi@123"
+  },
+  {
+    "role": "assistant",
+    "content": "All information has been collected. Thank you!"
   }
 ]

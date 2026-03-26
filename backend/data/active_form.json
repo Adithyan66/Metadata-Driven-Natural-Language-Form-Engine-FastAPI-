@@ -18,8 +18,37 @@
       "type": "number",
       "required": true,
       "validation_rules": {
-        "min": 18,
-        "max": 120
+        "min": 0,
+        "max": 120,
+        "conditional_rules": [
+          {
+            "if": {
+              "field": "country",
+              "equals": "India"
+            },
+            "then": {
+              "min": 18
+            }
+          },
+          {
+            "if": {
+              "field": "country",
+              "equals": "China"
+            },
+            "then": {
+              "min": 16
+            }
+          },
+          {
+            "if": {
+              "field": "country",
+              "equals": "Japan"
+            },
+            "then": {
+              "min": 15
+            }
+          }
+        ]
       }
     },
     {
@@ -268,6 +297,16 @@
           "value": "Fixed Deposit"
         }
       ]
+    },
+    {
+      "field_id": "password",
+      "label": "Password",
+      "type": "password",
+      "required": true,
+      "validation_rules": {
+        "regex": "^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?\":{}|<>]).{6,}$",
+        "regex_description": "at least 6 characters, one uppercase letter, and one special symbol"
+      }
     }
   ]
 }
