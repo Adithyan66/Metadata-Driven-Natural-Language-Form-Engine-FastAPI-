@@ -441,8 +441,22 @@
       "label": "City",
       "type": "dropdown",
       "required": false,
+      "active": false,
       "parent_field_id": "preferred_location",
-      "dropdown_options": []
+      "dropdown_options": [],
+      "conditional_rules": [
+        {
+          "if": {
+            "field": "preferred_location",
+            "operator": "not_equals",
+            "value": "Remote"
+          },
+          "then": {
+            "active": true,
+            "required": true
+          }
+        }
+      ]
     },
     {
       "field_id": "expected_salary",

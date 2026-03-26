@@ -5,66 +5,146 @@
   },
   {
     "role": "user",
-    "content": "adithyan india"
+    "content": "roy"
   },
   {
     "role": "assistant",
-    "content": "How many years of experience do you have in your field?"
+    "content": "Great to meet you, Roy! Can you please tell me your age?"
   },
   {
     "role": "user",
-    "content": "5"
+    "content": "18"
   },
   {
     "role": "assistant",
-    "content": "What job role are you applying for? You can choose from Frontend Developer, Backend Developer, DevOps Engineer, or Intern."
+    "content": "Great to have you here, Roy! Could you please provide your email address?"
   },
   {
     "role": "user",
-    "content": "Intern"
+    "content": "india"
   },
   {
     "role": "assistant",
-    "content": "What skills do you have that you'd like to highlight for this internship?"
+    "content": "Could you please provide your email address?"
   },
   {
     "role": "user",
-    "content": "AWS"
+    "content": "ddddd"
   },
   {
     "role": "assistant",
-    "content": "What skills do you have that you think would be a great fit for this internship? You can select multiple skills!"
+    "content": "Great to have you here, Roy! Could you please provide your email address?"
   },
   {
     "role": "user",
-    "content": "AWS"
+    "content": "update age to9"
   },
   {
     "role": "assistant",
-    "content": "What skills do you have that would be relevant for this internship? You can select multiple skills!"
+    "content": "What\u2019s your email address?"
   },
   {
     "role": "user",
-    "content": "Node.js"
+    "content": "count indnia"
   },
   {
     "role": "assistant",
-    "content": "What is your expected salary in USD?"
+    "content": "Could you please provide your email address?"
   },
   {
     "role": "user",
-    "content": "1500"
+    "content": "country update to india"
   },
   {
     "role": "assistant",
-    "content": "Great to have you here, Adithyan! Could you please let me know your availability? You can choose from Immediate, 15 Days, or 30 Days."
+    "content": "Hi there! It looks like there was an issue with your submission. The age you provided is 9, but to open a bank account in India, you need to be at least 18 years old. \n\nPlease update your age to meet this requirement, and we can continue with your application. If you have any questions or need assistance, feel free to ask!\n\nGreat! Could you please provide your email address?"
   },
   {
     "role": "user",
-    "content": "15 Days"
+    "content": "age 18"
   },
   {
     "role": "assistant",
-    "content": "All information has been collected. Thank you!"
+    "content": "What\u2019s your email address?"
+  },
+  {
+    "role": "user",
+    "content": "country india"
+  },
+  {
+    "role": "assistant",
+    "content": "Could you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "age 15 japan"
+  },
+  {
+    "role": "assistant",
+    "content": "It looks like there was an issue with the age you provided. The minimum age required to open a bank account is 18. Please enter your age as 18 or older. Additionally, if you would like to change your country to Japan, feel free to do so! Let me know if you need any help.\n\nWhat is your email address?"
+  },
+  {
+    "role": "user",
+    "content": "countyr japan"
+  },
+  {
+    "role": "assistant",
+    "content": "Could you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "age 15"
+  },
+  {
+    "role": "assistant",
+    "content": "Could you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "india"
+  },
+  {
+    "role": "assistant",
+    "content": "Could you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "countyr list"
+  },
+  {
+    "role": "assistant",
+    "content": "Could you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "show available cpuntyr"
+  },
+  {
+    "role": "assistant",
+    "content": "Could you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "age 18"
+  },
+  {
+    "role": "assistant",
+    "content": "Could you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "india"
+  },
+  {
+    "role": "assistant",
+    "content": "Could you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "india"
+  },
+  {
+    "role": "assistant",
+    "content": "Could you please provide your email address?"
   }
 ]

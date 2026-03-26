@@ -1,11 +1,5 @@
 {
-  "full_name": "adithyan",
-  "preferred_location": "India",
-  "experience": 5,
-  "job_role": "Intern",
-  "skills": [
-    "Node.js"
-  ],
-  "expected_salary": 1500,
-  "availability": "15 Days"
+  "full_name": "roy",
+  "age": 18,
+  "country": "Japan"
 }
