@@ -341,31 +341,34 @@ def chat(req: ChatRequest):
 
     missing = get_missing_fields(form, collected_data)
 
-    # Check if user answered a different field than what was asked
-    answered_different = (
-        is_uncertain
-        and currently_asking
-        and currently_asking in missing  # the asked field is STILL missing
-        and extracted  # but something else WAS extracted
-    )
-
     if not missing:
         response_msg = "All information has been collected. Thank you!"
         status = "complete"
-    elif answered_different:
-        # Acknowledge what was stored, then re-ask the original field
-        stored_labels = []
-        for fid in extracted:
-            f = get_field(form, fid)
-            if f and fid in collected_data:
-                stored_labels.append(f"{f['label']} as '{collected_data[fid]}'")
-
-        ack = f"Got it, I've noted {', '.join(stored_labels)}." if stored_labels else ""
-        next_q = call_openai_next_question(form, collected_data, missing, auto_filled=auto_filled)
-        response_msg = f"{ack} But you haven't answered the earlier question.\n\n{next_q}" if ack else next_q
-        status = "pending"
     else:
-        response_msg = call_openai_next_question(form, collected_data, missing, auto_filled=auto_filled)
+        # Build last_action context for the LLM
+        last_action = {}
+
+        # What user explicitly provided
+        stored = {fid: collected_data[fid] for fid in pending_data if fid in collected_data}
+        if stored:
+            if is_update:
+                last_action["updated"] = stored
+            else:
+                last_action["stored"] = stored
+
+        # What was auto-filled or inferred
+        auto_only = {k: v for k, v in auto_filled.items() if k not in pending_data}
+        inferred_only = {k: v for k, v in inferred.items() if k not in pending_data}
+        if auto_only:
+            last_action["auto_filled"] = auto_only
+        if inferred_only:
+            last_action["inferred"] = inferred_only
+
+        # Did user skip the asked question?
+        if currently_asking and currently_asking in missing and extracted:
+            last_action["unanswered_field"] = currently_asking
+
+        response_msg = call_openai_next_question(form, collected_data, missing, last_action=last_action)
         status = "pending"
 
     messages.append({"role": "assistant", "content": response_msg})

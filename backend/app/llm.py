@@ -148,8 +148,15 @@ Return ONLY a JSON object. No explanation."""
         return {}
 
 
-def call_openai_next_question(form, collected_data, missing_fields, auto_filled=None):
-    """Ask OpenAI to generate the next question."""
+def call_openai_next_question(form, collected_data, missing_fields, last_action=None):
+    """Ask OpenAI to generate the next question.
+
+    Args:
+        last_action: dict describing what just happened, e.g.:
+            {"stored": {"age": 25, "country": "India"}, "auto_filled": {"state": "Kerala"},
+             "inferred": {"country": "India"}, "updated": {"age": 30},
+             "unanswered_field": "full_name"}
+    """
     fields_info = []
     for fid in missing_fields:
         field = get_field(form, fid)
@@ -170,27 +177,56 @@ def call_openai_next_question(form, collected_data, missing_fields, auto_filled=
     if not fields_info:
         return "All fields have been collected!"
 
-    auto_fill_note = ""
-    if auto_filled:
-        filled_desc = ", ".join(f"{k}='{v}'" for k, v in auto_filled.items())
-        auto_fill_note = f"\n\nNote: The following fields were auto-filled because only one valid option existed: {filled_desc}. Mention this to the user briefly."
+    # Build last action context for the prompt
+    action_context = ""
+    if last_action:
+        parts = []
+        stored = last_action.get("stored", {})
+        if stored:
+            items = ", ".join(f"{k}='{v}'" for k, v in stored.items())
+            parts.append(f"User just provided: {items}. Acknowledge this briefly.")
 
-    system_prompt = f"""You are a friendly form assistant. Generate the next question to ask the user.
+        auto_filled = last_action.get("auto_filled", {})
+        if auto_filled:
+            items = ", ".join(f"{k}='{v}'" for k, v in auto_filled.items())
+            parts.append(f"Auto-filled (only one valid option): {items}. Mention this to the user.")
+
+        inferred = last_action.get("inferred", {})
+        if inferred:
+            items = ", ".join(f"{k}='{v}'" for k, v in inferred.items())
+            parts.append(f"System inferred from hierarchy: {items}. Mention this naturally (e.g., 'Since you selected X, I've set Y').")
+
+        updated = last_action.get("updated", {})
+        if updated:
+            items = ", ".join(f"{k}='{v}'" for k, v in updated.items())
+            parts.append(f"User updated: {items}. Confirm the update briefly.")
+
+        unanswered = last_action.get("unanswered_field")
+        if unanswered:
+            field = get_field(form, unanswered)
+            label = field["label"] if field else unanswered
+            parts.append(f"The user did NOT answer the previously asked question about '{label}'. After acknowledging what was stored, remind them and ask for '{label}' now.")
+
+        if parts:
+            action_context = "\n\nLAST ACTION:\n" + "\n".join(f"- {p}" for p in parts)
+
+    system_prompt = f"""You are a friendly form assistant. Generate the next message for the user.
 
 Form: {form['title']}
 Already collected: {json.dumps(collected_data)}
 
 Missing fields (ask the FIRST one that makes sense):
 {chr(10).join(fields_info)}
-{auto_fill_note}
+{action_context}
 RULES:
-1. Ask for ONE field at a time.
-2. Be conversational and friendly.
-3. If it's a dropdown, mention the available options naturally.
-4. Respect field ordering — ask parent fields before child fields.
-5. Keep it short and natural.
+1. First, briefly acknowledge what just happened (if LAST ACTION is provided).
+2. Then ask for ONE missing field.
+3. Be conversational and friendly. Keep it short.
+4. If it's a dropdown, mention the available options naturally.
+5. Respect field ordering — ask parent fields before child fields.
+6. Do NOT repeat already collected data unnecessarily.
 
-Return ONLY the question text."""
+Return ONLY the message text."""
 
     response = _get_client().chat.completions.create(
         model="gpt-4o-mini",
