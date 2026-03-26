@@ -2,6 +2,7 @@
   {
     "form_id": "bank_opening_form",
     "title": "Bank Account Opening Form",
+    "system_prompt": "This is a bank account opening form. The user needs to provide personal details and address information. Country, State, District, and Ward form a hierarchical location system — each level narrows the next. Age requirements vary by country (India: 18+, China: 16+, Japan: 15+). Pincode is only required for Indian applicants. The password must meet security requirements. Use a formal but friendly banking tone. Address the user professionally.",
     "fields": [
       {
         "field_id": "full_name",
@@ -338,6 +339,7 @@
   {
   "form_id": "job_application_form",
   "title": "Job Application Form",
+  "system_prompt": "This is a job application form for a tech company. Roles include Frontend Developer, Backend Developer, DevOps Engineer, and Intern. Each role has experience requirements defined in metadata. Skills are multi-select — users can pick multiple. Preferred location can be Remote, India (with city options), or USA (with city options). City is only asked when location is not Remote. Interns have a salary cap of $2000. Frontend Developers must provide a portfolio URL. Use a casual, encouraging startup tone.",
   "fields": [
     {
       "field_id": "full_name",
@@ -389,19 +391,6 @@
             "max_experience": 1
           }
         }
-      ]
-    },
-    {
-      "field_id": "skills",
-      "label": "Skills",
-      "type": "multi_select",
-      "required": true,
-      "dropdown_options": [
-        { "value": "JavaScript" },
-        { "value": "React" },
-        { "value": "Node.js" },
-        { "value": "Docker" },
-        { "value": "AWS" }
       ]
     },
     {
