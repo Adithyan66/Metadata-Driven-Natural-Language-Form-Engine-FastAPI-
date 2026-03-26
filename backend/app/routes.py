@@ -1,0 +1,382 @@
+"""API endpoints for the dynamic form engine."""
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
+from app.storage import read_json, write_json
+from app.hierarchy import (
+    get_field,
+    has_options,
+    get_all_descendant_field_ids,
+    get_valid_dropdown_values,
+)
+from app.validation import (
+    validate_field,
+    get_missing_fields,
+    get_currently_asking,
+    get_suggestions,
+    build_conflict_suggestions,
+)
+from app.engine import resolve_and_validate
+from app.llm import (
+    call_openai_extract,
+    call_openai_next_question,
+    call_openai_error_message,
+)
+
+router = APIRouter()
+
+
+# --- Request models ---
+
+class SelectFormRequest(BaseModel):
+    form_id: str
+
+
+class ChatRequest(BaseModel):
+    message: str
+
+
+# --- Helpers ---
+
+def _mask_sensitive(form, collected_data):
+    """Mask sensitive field values in response data."""
+    safe = dict(collected_data)
+    for field in form["fields"]:
+        if field.get("type") == "password" and field["field_id"] in safe:
+            safe[field["field_id"]] = "********"
+    return safe
+
+
+def _save_currently_asking(form, collected_data):
+    """Persist which field will be asked next."""
+    fid, _ = get_currently_asking(form, collected_data)
+    write_json("currently_asking.json", {"field_id": fid})
+
+
+# --- Endpoints ---
+
+@router.get("/forms")
+def get_forms():
+    forms = read_json("forms.json")
+    return [{"form_id": f["form_id"], "title": f["title"]} for f in forms]
+
+
+@router.post("/select-form")
+def select_form(req: SelectFormRequest):
+    forms = read_json("forms.json")
+    form = next((f for f in forms if f["form_id"] == req.form_id), None)
+    if not form:
+        raise HTTPException(status_code=404, detail="Form not found")
+
+    write_json("active_form.json", form)
+    write_json("collected_data.json", {})
+    write_json("messages.json", [])
+
+    missing = get_missing_fields(form, {})
+    question = call_openai_next_question(form, {}, missing)
+
+    _save_currently_asking(form, {})
+
+    messages = [{"role": "assistant", "content": question}]
+    write_json("messages.json", messages)
+
+    return {
+        "status": "pending",
+        "message": question,
+        "collected_data": {},
+        "missing_fields": missing,
+        "invalid_fields": [],
+        "suggestions": get_suggestions(form, {}, missing),
+    }
+
+
+@router.post("/reset")
+def reset():
+    write_json("active_form.json", None)
+    write_json("collected_data.json", {})
+    write_json("messages.json", [])
+    write_json("currently_asking.json", {"field_id": None})
+    return {"status": "reset", "message": "All data cleared."}
+
+
+@router.post("/chat")
+def chat(req: ChatRequest):
+    # Step 1: Load state
+    form = read_json("active_form.json")
+    if not form:
+        raise HTTPException(status_code=400, detail="No active form. Select a form first.")
+
+    collected_data = read_json("collected_data.json")
+    messages = read_json("messages.json")
+
+    messages.append({"role": "user", "content": req.message})
+
+    # Step 2: Determine which field we're currently asking
+    currently_asking, currently_asking_field = get_currently_asking(form, collected_data)
+
+    # Step 2b: Handle sensitive fields — use exact user input, not LLM output
+    password_field_ids = [f["field_id"] for f in form["fields"] if f.get("type") == "password"]
+
+    if currently_asking in password_field_ids:
+        extracted = {currently_asking: req.message.strip()}
+    else:
+        # Normal extraction via LLM
+        extracted = call_openai_extract(
+            req.message, form, collected_data,
+            currently_asking=currently_asking,
+            currently_asking_field=currently_asking_field,
+        )
+        print(extracted)
+        # Remove any LLM-extracted passwords
+        for fid in password_field_ids:
+            extracted.pop(fid, None)
+
+    # Clean metadata keys from extracted
+    is_uncertain = extracted.pop("_uncertain", False)
+    intent = extracted.pop("_intent", "normal")
+    is_update = intent == "update"
+
+    # Post-extraction sanitizer — reject hallucinated values
+    user_msg_lower = req.message.strip().lower()
+    sanitized = {}
+    for fid, val in extracted.items():
+        if val is None or val == "":
+            continue
+        field_def = get_field(form, fid)
+        if not field_def:
+            continue
+        ftype = field_def.get("type", "text")
+        val_str = str(val).lower()
+
+        if ftype == "number":
+            try:
+                float(val)
+            except (ValueError, TypeError):
+                continue
+            if not any(ch.isdigit() for ch in user_msg_lower):
+                continue
+            sanitized[fid] = val
+
+        elif has_options(field_def):
+            valid_opts = get_valid_dropdown_values(form, fid, collected_data)
+            if valid_opts:
+                matched = [o for o in valid_opts if o.lower() == val_str]
+                if matched:
+                    sanitized[fid] = val
+                else:
+                    continue
+            else:
+                sanitized[fid] = val
+
+        else:
+            # text — check if value (or significant words) appear in message
+            if val_str in user_msg_lower:
+                sanitized[fid] = val
+            else:
+                val_words = [w for w in val_str.split() if len(w) > 2]
+                if val_words and any(w in user_msg_lower for w in val_words):
+                    sanitized[fid] = val
+                else:
+                    continue
+
+    extracted = sanitized
+
+    # If nothing survived extraction + sanitization → re-ask
+    if not extracted:
+        if currently_asking and currently_asking_field:
+            label = currently_asking_field["label"]
+            nudge_msg = f"I didn't quite catch that. Could you please provide your {label}?"
+            if has_options(currently_asking_field):
+                valid_opts = get_valid_dropdown_values(form, currently_asking, collected_data)
+                if valid_opts:
+                    nudge_msg += f" You can choose from: {', '.join(valid_opts)}."
+        else:
+            nudge_msg = "I didn't quite understand that. Could you please rephrase?"
+
+        messages.append({"role": "assistant", "content": nudge_msg})
+        write_json("messages.json", messages)
+        _save_currently_asking(form, collected_data)
+
+        missing = get_missing_fields(form, collected_data)
+        return {
+            "status": "pending",
+            "message": nudge_msg,
+            "collected_data": _mask_sensitive(form, collected_data),
+            "missing_fields": missing,
+            "invalid_fields": [],
+            "suggestions": get_suggestions(form, collected_data, missing),
+        }
+
+    # ===== ATOMIC TRANSACTION =====
+    # Phase 1: Filter, normalize, check field priority
+    pending_data = {}
+    invalid_fields = []
+
+    field_order = {f["field_id"]: i for i, f in enumerate(form["fields"])}
+    sorted_fields = sorted(
+        extracted.items(),
+        key=lambda item: field_order.get(item[0], 999),
+    )
+
+    for field_id, value in sorted_fields:
+        if value is None or value == "":
+            continue
+
+        # Field priority: first valid value preserved unless explicit update
+        if field_id in collected_data and not is_update:
+            existing = collected_data[field_id]
+            if str(existing).lower() == str(value).lower():
+                continue
+            field = get_field(form, field_id)
+            label = field["label"] if field else field_id
+            invalid_fields.append({
+                "field_id": field_id,
+                "value": value,
+                "error": (
+                    f"You already provided {label} as '{existing}'. "
+                    f"If you want to change it, say 'change {label.lower()} to {value}'."
+                ),
+            })
+            continue
+
+        # Per-field validation
+        running_data = {**collected_data, **pending_data}
+        if is_update and field_id in running_data:
+            running_data.pop(field_id)
+
+        is_valid, error = validate_field(form, field_id, value, running_data)
+        if is_valid:
+            field = get_field(form, field_id)
+            if field and has_options(field):
+                valid_opts = get_valid_dropdown_values(form, field_id, running_data)
+                if valid_opts:
+                    matched = [o for o in valid_opts if o.lower() == str(value).lower()]
+                    if matched:
+                        value = matched[0]
+            if field and field["type"] == "number":
+                try:
+                    value = int(value) if isinstance(value, str) and value.isdigit() else value
+                    if isinstance(value, str):
+                        value = float(value)
+                except (ValueError, TypeError):
+                    pass
+            pending_data[field_id] = value
+        else:
+            invalid_fields.append({"field_id": field_id, "value": value, "error": error})
+
+    # Phase 2: Build candidate state
+    candidate_data = dict(collected_data)
+
+    if is_update and pending_data:
+        for updated_fid in pending_data:
+            field_def = get_field(form, updated_fid)
+            if field_def and has_options(field_def) and field_def.get("parent_field_id") is None:
+                descendants = get_all_descendant_field_ids(form, updated_fid)
+                for desc_fid in descendants:
+                    candidate_data.pop(desc_fid, None)
+
+    candidate_data.update(pending_data)
+
+    # Auto-fill fields with exactly one valid option
+    auto_filled = {}
+    changed = True
+    while changed:
+        changed = False
+        for field in form["fields"]:
+            fid = field["field_id"]
+            if fid in candidate_data or not has_options(field):
+                continue
+            valid_opts = get_valid_dropdown_values(form, fid, candidate_data)
+            if valid_opts and len(valid_opts) == 1:
+                candidate_data[fid] = valid_opts[0]
+                auto_filled[fid] = valid_opts[0]
+                changed = True
+
+    # Phase 3: Fixpoint resolve + validate
+    resolved_data, inferred, all_conflicts, removed_fields = resolve_and_validate(form, candidate_data)
+    auto_filled.update(inferred)
+
+    if all_conflicts or invalid_fields:
+        # REJECT — existing state is immutable
+        write_json("collected_data.json", collected_data)
+
+        all_errors = []
+        for c in all_conflicts:
+            all_errors.append({"field_id": c["field"], "value": c.get("value"), "error": c["reason"]})
+        all_errors.extend(invalid_fields)
+
+        conflict_suggestions = build_conflict_suggestions(form, all_conflicts, resolved_data) if all_conflicts else []
+
+        error_msg = call_openai_error_message(form, all_errors, req.message, collected_data)
+        missing = get_missing_fields(form, collected_data)
+
+        if missing:
+            next_q = call_openai_next_question(form, collected_data, missing)
+            response_msg = error_msg + "\n\n" + next_q
+        else:
+            response_msg = error_msg
+
+        status = "conflict" if all_conflicts else "pending"
+
+        messages.append({"role": "assistant", "content": response_msg})
+        write_json("messages.json", messages)
+        _save_currently_asking(form, collected_data)
+
+        result = {
+            "status": status,
+            "message": response_msg,
+            "collected_data": _mask_sensitive(form, collected_data),
+            "missing_fields": missing,
+            "invalid_fields": invalid_fields,
+            "suggestions": conflict_suggestions + get_suggestions(form, collected_data, missing, invalid_fields),
+        }
+        if all_conflicts:
+            result["conflicts"] = [{"field": c["field"], "reason": c["reason"]} for c in all_conflicts]
+        return result
+
+    # Phase 4: COMMIT
+    collected_data = resolved_data
+    write_json("collected_data.json", collected_data)
+
+    missing = get_missing_fields(form, collected_data)
+
+    # Check if user answered a different field than what was asked
+    answered_different = (
+        is_uncertain
+        and currently_asking
+        and currently_asking in missing  # the asked field is STILL missing
+        and extracted  # but something else WAS extracted
+    )
+
+    if not missing:
+        response_msg = "All information has been collected. Thank you!"
+        status = "complete"
+    elif answered_different:
+        # Acknowledge what was stored, then re-ask the original field
+        stored_labels = []
+        for fid in extracted:
+            f = get_field(form, fid)
+            if f and fid in collected_data:
+                stored_labels.append(f"{f['label']} as '{collected_data[fid]}'")
+
+        ack = f"Got it, I've noted {', '.join(stored_labels)}." if stored_labels else ""
+        next_q = call_openai_next_question(form, collected_data, missing, auto_filled=auto_filled)
+        response_msg = f"{ack} But you haven't answered the earlier question.\n\n{next_q}" if ack else next_q
+        status = "pending"
+    else:
+        response_msg = call_openai_next_question(form, collected_data, missing, auto_filled=auto_filled)
+        status = "pending"
+
+    messages.append({"role": "assistant", "content": response_msg})
+    write_json("messages.json", messages)
+    _save_currently_asking(form, collected_data)
+
+    return {
+        "status": status,
+        "message": response_msg,
+        "collected_data": _mask_sensitive(form, collected_data),
+        "missing_fields": missing,
+        "invalid_fields": invalid_fields,
+        "suggestions": get_suggestions(form, collected_data, missing, invalid_fields),
+    }

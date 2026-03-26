@@ -5,95 +5,7 @@
   },
   {
     "role": "user",
-    "content": "roy"
-  },
-  {
-    "role": "assistant",
-    "content": "Great to meet you, Roy! Can you please tell me your age?"
-  },
-  {
-    "role": "user",
-    "content": "18"
-  },
-  {
-    "role": "assistant",
-    "content": "Great to have you here, Roy! Could you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "india"
-  },
-  {
-    "role": "assistant",
-    "content": "Could you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "ddddd"
-  },
-  {
-    "role": "assistant",
-    "content": "Great to have you here, Roy! Could you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "update age to9"
-  },
-  {
-    "role": "assistant",
-    "content": "What\u2019s your email address?"
-  },
-  {
-    "role": "user",
-    "content": "count indnia"
-  },
-  {
-    "role": "assistant",
-    "content": "Could you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "country update to india"
-  },
-  {
-    "role": "assistant",
-    "content": "Hi there! It looks like there was an issue with your submission. The age you provided is 9, but to open a bank account in India, you need to be at least 18 years old. \n\nPlease update your age to meet this requirement, and we can continue with your application. If you have any questions or need assistance, feel free to ask!\n\nGreat! Could you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "age 18"
-  },
-  {
-    "role": "assistant",
-    "content": "What\u2019s your email address?"
-  },
-  {
-    "role": "user",
-    "content": "country india"
-  },
-  {
-    "role": "assistant",
-    "content": "Could you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "age 15 japan"
-  },
-  {
-    "role": "assistant",
-    "content": "It looks like there was an issue with the age you provided. The minimum age required to open a bank account is 18. Please enter your age as 18 or older. Additionally, if you would like to change your country to Japan, feel free to do so! Let me know if you need any help.\n\nWhat is your email address?"
-  },
-  {
-    "role": "user",
-    "content": "countyr japan"
-  },
-  {
-    "role": "assistant",
-    "content": "Could you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "age 15"
+    "content": "adithyan kerala 18"
   },
   {
     "role": "assistant",
@@ -109,39 +21,7 @@
   },
   {
     "role": "user",
-    "content": "countyr list"
-  },
-  {
-    "role": "assistant",
-    "content": "Could you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "show available cpuntyr"
-  },
-  {
-    "role": "assistant",
-    "content": "Could you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "age 18"
-  },
-  {
-    "role": "assistant",
-    "content": "Could you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "india"
-  },
-  {
-    "role": "assistant",
-    "content": "Could you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "india"
+    "content": "chnage age to 20"
   },
   {
     "role": "assistant",
