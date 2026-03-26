@@ -1,22 +1,54 @@
 [
   {
     "role": "assistant",
-    "content": "Great! Let's get started on your Bank Account Opening Form. First, could you please provide your full name?"
+    "content": "Great! Let's get started on your bank account opening process. First, could you please provide your full name?"
   },
   {
     "role": "user",
-    "content": "adithyan from Coimbatore china"
+    "content": "name adithyan aged 20  from Coimbatore china"
   },
   {
     "role": "assistant",
-    "content": "It looks like there was an issue with the location you provided. You mentioned \"Coimbatore,\" which is in India, but the selected country is \"China.\" Please double-check your country selection and make sure it matches the district you want to use. If you intended to select India, please update the country accordingly. Thank you!\n\nGreat! Let's get started on opening your bank account. First, could you please provide your full name?"
+    "content": "It looks like there's a small issue with the information provided. You mentioned that you're from Coimbatore, which is in India, but you selected China as your country. Please choose the correct country that matches your district. Once you update that, we can proceed with your bank account opening form. Thank you!\n\nGreat! Let's keep going with your bank account opening process. First, could you please provide your full name?"
   },
   {
     "role": "user",
-    "content": "Yokohama"
+    "content": "adithyan"
   },
   {
     "role": "assistant",
-    "content": "Thank you for providing your district as Yokohama! I've noted that you're in Japan, specifically in Kerala. Now, could you please share your Full Name?"
+    "content": "Great to have your name, Adithyan! Now, could you please tell me your age?"
+  },
+  {
+    "role": "user",
+    "content": "15"
+  },
+  {
+    "role": "assistant",
+    "content": "Great, I've noted your age as 15! Now, could you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "india"
+  },
+  {
+    "role": "assistant",
+    "content": "It looks like there\u2019s an issue with the age you provided. In India, you need to be at least 18 years old to open a bank account. Since you're currently 15, you won\u2019t be able to proceed with the application just yet. If you have any questions or need assistance, feel free to ask!\n\nGreat, Adithyan! Now let's move on to the next step. Could you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "chnage age to 18"
+  },
+  {
+    "role": "assistant",
+    "content": "Great, I've confirmed your age is now set to 18! Now, could you please provide me with your Email Address?"
+  },
+  {
+    "role": "user",
+    "content": "india"
+  },
+  {
+    "role": "assistant",
+    "content": "Great! I\u2019ve noted that your country is India. Now, could you please provide your Email Address?"
   }
 ]

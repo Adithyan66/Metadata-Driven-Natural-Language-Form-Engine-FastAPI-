@@ -234,23 +234,16 @@ def get_currently_asking(form, collected_data):
     return None, None
 
 
-def get_suggestions(form, collected_data, missing_fields, invalid_fields=None):
-    """Suggestions for fields that have selectable options."""
+def get_suggestions(form, collected_data, missing_fields, invalid_fields=None, currently_asking=None):
+    """Suggestions only for the field being asked, and only if it has options."""
     suggestions = []
     target_field_ids = []
 
-    if invalid_fields:
-        for inv in invalid_fields:
-            field = get_field(form, inv["field_id"])
-            if field and has_options(field):
-                target_field_ids.append(inv["field_id"])
-
-    if missing_fields:
-        next_fid = missing_fields[0]
-        next_field = get_field(form, next_fid)
-        if next_field and has_options(next_field):
-            if next_fid not in target_field_ids:
-                target_field_ids.append(next_fid)
+    # Only suggest for currently_asking if it has options
+    if currently_asking:
+        field = get_field(form, currently_asking)
+        if field and has_options(field):
+            target_field_ids.append(currently_asking)
 
     for fid in target_field_ids:
         field = get_field(form, fid)

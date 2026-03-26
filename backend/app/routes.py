@@ -76,6 +76,7 @@ def select_form(req: SelectFormRequest):
     missing = get_missing_fields(form, {})
     question = call_openai_next_question(form, {}, missing)
 
+    first_asking, _ = get_currently_asking(form, {})
     _save_currently_asking(form, {})
 
     messages = [{"role": "assistant", "content": question}]
@@ -87,7 +88,7 @@ def select_form(req: SelectFormRequest):
         "collected_data": {},
         "missing_fields": missing,
         "invalid_fields": [],
-        "suggestions": get_suggestions(form, {}, missing),
+        "suggestions": get_suggestions(form, {}, missing, currently_asking=first_asking),
     }
 
 
@@ -205,7 +206,7 @@ def chat(req: ChatRequest):
             "collected_data": _mask_sensitive(form, collected_data),
             "missing_fields": missing,
             "invalid_fields": [],
-            "suggestions": get_suggestions(form, collected_data, missing),
+            "suggestions": get_suggestions(form, collected_data, missing, currently_asking=currently_asking),
         }
 
     # ===== ATOMIC TRANSACTION =====
@@ -329,7 +330,7 @@ def chat(req: ChatRequest):
             "collected_data": _mask_sensitive(form, collected_data),
             "missing_fields": missing,
             "invalid_fields": invalid_fields,
-            "suggestions": conflict_suggestions + get_suggestions(form, collected_data, missing, invalid_fields),
+            "suggestions": conflict_suggestions + get_suggestions(form, collected_data, missing, invalid_fields, currently_asking=currently_asking),
         }
         if all_conflicts:
             result["conflicts"] = [{"field": c["field"], "reason": c["reason"]} for c in all_conflicts]
@@ -375,11 +376,14 @@ def chat(req: ChatRequest):
     write_json("messages.json", messages)
     _save_currently_asking(form, collected_data)
 
+    # Get the NEW currently_asking after commit for suggestions
+    new_asking, _ = get_currently_asking(form, collected_data)
+
     return {
         "status": status,
         "message": response_msg,
         "collected_data": _mask_sensitive(form, collected_data),
         "missing_fields": missing,
         "invalid_fields": invalid_fields,
-        "suggestions": get_suggestions(form, collected_data, missing, invalid_fields),
+        "suggestions": get_suggestions(form, collected_data, missing, currently_asking=new_asking),
     }
