@@ -241,18 +241,20 @@ def build_dependency_graph(form):
     - conditional_deps: {field_id: [condition_field_id, ...]} from conditional_rules
     Both are metadata-driven, no hardcoded field names.
     """
-    hierarchy_deps = {}   # child → parent (state → country)
-    conditional_deps = {}  # field → [fields it depends on] (age → [country])
+    hierarchy_deps = {}
+    conditional_deps = {}
 
     for field in form["fields"]:
         fid = field["field_id"]
 
-        # Hierarchy: parent_field_id → dependency
         if field.get("parent_field_id"):
             hierarchy_deps[fid] = field["parent_field_id"]
 
-        # Conditional rules: "if" field → dependency
-        for rule in field.get("validation_rules", {}).get("conditional_rules", []):
+        # Gather from validation_rules.conditional_rules AND field-level conditional_rules
+        all_cond_rules = field.get("validation_rules", {}).get("conditional_rules", [])
+        all_cond_rules += field.get("conditional_rules", [])
+
+        for rule in all_cond_rules:
             cond_field = rule.get("if", {}).get("field")
             if cond_field:
                 if fid not in conditional_deps:
@@ -344,36 +346,53 @@ def _get_ambiguous_parents(form, data):
 
 
 def resolve_and_validate(form, candidate_data):
-    """Fixpoint validation loop:
-    1. Infer missing parent fields from hierarchy (unambiguous only)
-    2. For ambiguous parents, test ALL possibilities
-    3. Re-validate ALL fields with full context
-    4. Check conditional rules + hierarchy consistency
-    5. Repeat until stable (fixpoint)
+    """Full fixpoint engine:
+    1. Resolve all field states (active, required, validation_rules)
+    2. Clean data for inactive fields
+    3. Infer missing parents from hierarchy
+    4. Re-resolve states (inferred data may change states)
+    5. Validate ALL fields with full context
+    6. Repeat until stable
 
-    Returns (resolved_data, inferred, conflicts):
-    - resolved_data: candidate + inferred values
+    Returns (resolved_data, inferred, conflicts, removed_fields):
+    - resolved_data: candidate + inferred, cleaned of inactive data
     - inferred: {field_id: value} of inferred-only fields
     - conflicts: list of conflict dicts (empty = valid)
+    - removed_fields: list of field_ids removed due to becoming inactive
     """
     resolved = dict(candidate_data)
     all_inferred = {}
+    all_removed = []
 
-    # Fixpoint loop — iterate until no new inferences
-    for _ in range(10):  # safety bound
+    # Fixpoint loop — infer + resolve states + clean, repeat until stable
+    for _ in range(10):
+        # Step 1: Resolve field states
+        field_states = resolve_all_field_states(form, resolved)
+
+        # Step 2: Clean inactive field data
+        resolved, removed = cleanup_inactive_data(form, resolved, field_states)
+        all_removed.extend(removed)
+
+        # Step 3: Infer missing parents
         new_inferred = infer_parents_from_hierarchy(form, resolved)
         fresh = {k: v for k, v in new_inferred.items() if k not in resolved}
-        if not fresh:
-            break
+
+        if not fresh and not removed:
+            break  # stable — no new inferences, no new removals
         resolved.update(fresh)
         all_inferred.update(fresh)
 
+    # Final state resolution after fixpoint
+    field_states = resolve_all_field_states(form, resolved)
+
     conflicts = []
 
-    # 1. Cross-field conditional conflicts (with inferred context)
+    # 1. Cross-field conditional conflicts (re-validate with full context)
     for field in form["fields"]:
         fid = field["field_id"]
         if fid not in resolved:
+            continue
+        if not field_states.get(fid, {}).get("active", True):
             continue
         if field.get("type") == "dropdown":
             continue
@@ -391,12 +410,9 @@ def resolve_and_validate(form, candidate_data):
                 "triggered_by": triggered_by,
             })
 
-    # 2. Ambiguous parent validation:
-    # If a parent couldn't be inferred (ambiguous), test the field against
-    # ALL possible parents. If invalid under EVERY possibility → reject.
+    # 2. Ambiguous parent validation
     ambiguous = _get_ambiguous_parents(form, resolved)
     for parent_fid, possible_values in ambiguous.items():
-        # Check each field with conditional_rules that depends on this parent
         for field in form["fields"]:
             fid = field["field_id"]
             if fid not in resolved:
@@ -407,22 +423,17 @@ def resolve_and_validate(form, candidate_data):
             )
             if not depends_on_parent:
                 continue
-
-            # Already caught above with inferred context
             if parent_fid in resolved:
                 continue
 
             value = resolved[fid]
-            # Test against each possible parent value
             valid_under_any = False
-            failing_reasons = []
             for pv in possible_values:
                 test_data = {**resolved, parent_fid: pv}
-                is_valid, error = validate_field(form, fid, value, test_data)
+                is_valid, _ = validate_field(form, fid, value, test_data)
                 if is_valid:
                     valid_under_any = True
                     break
-                failing_reasons.append(f"{parent_fid}={pv}: {error}")
 
             if not valid_under_any:
                 parent_field = get_field(form, parent_fid)
@@ -442,37 +453,133 @@ def resolve_and_validate(form, candidate_data):
     for hc in hierarchy_issues:
         conflicts.append({"field": "hierarchy", "reason": hc})
 
-    return resolved, all_inferred, conflicts
+    return resolved, all_inferred, conflicts, all_removed
 
 
-# --- Conditional rule helpers ---
+# === RULE ENGINE ===
+
+# --- 1. Condition Evaluator (generic, operator-based) ---
+
+def evaluate_condition(condition, collected_data):
+    """Evaluate a single condition against collected_data.
+    Supports operators: equals, not_equals, greater_than, less_than, in, not_in.
+    Falls back to 'equals' if 'operator' is missing (backward compat).
+    Returns True if condition is met.
+    """
+    cond_field = condition.get("field")
+    if not cond_field or cond_field not in collected_data:
+        return False
+
+    actual = collected_data[cond_field]
+    operator = condition.get("operator", "equals")
+    expected = condition.get("value", condition.get("equals"))  # backward compat
+
+    # Normalize for comparison
+    actual_str = str(actual).lower()
+    expected_str = str(expected).lower() if expected is not None else ""
+
+    if operator == "equals":
+        return actual_str == expected_str
+    elif operator == "not_equals":
+        return actual_str != expected_str
+    elif operator == "greater_than":
+        try:
+            return float(actual) > float(expected)
+        except (ValueError, TypeError):
+            return False
+    elif operator == "less_than":
+        try:
+            return float(actual) < float(expected)
+        except (ValueError, TypeError):
+            return False
+    elif operator == "in":
+        if isinstance(expected, list):
+            return actual_str in [str(v).lower() for v in expected]
+        return False
+    elif operator == "not_in":
+        if isinstance(expected, list):
+            return actual_str not in [str(v).lower() for v in expected]
+        return True
+
+    return False
+
+
+# --- 2. Field State Resolver ---
+
+def resolve_field_state(field, collected_data):
+    """Compute the dynamic state of a field based on its conditional_rules.
+    Returns {active, required, validation_rules} — fully resolved.
+    """
+    # Base state from metadata
+    state = {
+        "active": field.get("active", True),
+        "required": field.get("required", False),
+        "validation_rules": {},
+    }
+
+    # Start with base validation rules (strip out conditional_rules)
+    base_rules = dict(field.get("validation_rules", {}))
+    validation_cond_rules = base_rules.pop("conditional_rules", [])
+    state["validation_rules"] = base_rules
+
+    # Merge field-level conditional_rules + validation conditional_rules
+    all_conditional_rules = field.get("conditional_rules", []) + validation_cond_rules
+
+    # Apply conditional_rules — each matching rule can override active, required, validation
+    for rule in all_conditional_rules:
+        condition = rule.get("if", {})
+        if evaluate_condition(condition, collected_data):
+            then = rule.get("then", {})
+            # Override active/required if specified
+            if "active" in then:
+                state["active"] = then["active"]
+            if "required" in then:
+                state["required"] = then["required"]
+            # Merge validation rule overrides
+            rule_overrides = {k: v for k, v in then.items() if k not in ("active", "required")}
+            state["validation_rules"].update(rule_overrides)
+
+    return state
+
+
+def resolve_all_field_states(form, collected_data):
+    """Resolve states for ALL fields. Returns {field_id: {active, required, validation_rules}}."""
+    states = {}
+    for field in form["fields"]:
+        states[field["field_id"]] = resolve_field_state(field, collected_data)
+    return states
+
+
+def cleanup_inactive_data(form, collected_data, field_states):
+    """Remove collected_data for fields that are no longer active.
+    Returns (cleaned_data, removed_fields).
+    """
+    cleaned = dict(collected_data)
+    removed = []
+    for fid, state in field_states.items():
+        if not state["active"] and fid in cleaned:
+            cleaned.pop(fid)
+            removed.append(fid)
+    return cleaned, removed
+
 
 def resolve_rules(field, collected_data):
-    """Resolve validation rules for a field, applying conditional overrides.
-    Returns the effective rules dict after merging any matching conditional rules.
+    """Resolve effective validation rules for a field (convenience wrapper).
+    Uses the full field state resolver.
     """
-    base_rules = dict(field.get("validation_rules", {}))
-    conditional_rules = base_rules.pop("conditional_rules", [])
-
-    for rule in conditional_rules:
-        condition = rule.get("if", {})
-        cond_field = condition.get("field")
-        cond_value = condition.get("equals")
-        if cond_field and cond_field in collected_data:
-            if str(collected_data[cond_field]).lower() == str(cond_value).lower():
-                base_rules.update(rule.get("then", {}))
-
-    return base_rules
+    state = resolve_field_state(field, collected_data)
+    return state["validation_rules"]
 
 
 def _find_trigger_from_conditions(field, collected_data):
     """Find which conditional rule's condition is currently active for this field."""
-    for rule in field.get("validation_rules", {}).get("conditional_rules", []):
+    all_rules = field.get("validation_rules", {}).get("conditional_rules", [])
+    all_rules += field.get("conditional_rules", [])
+    for rule in all_rules:
         condition = rule.get("if", {})
-        cond_field = condition.get("field")
-        cond_value = condition.get("equals")
-        if cond_field and cond_field in collected_data:
-            if str(collected_data[cond_field]).lower() == str(cond_value).lower():
+        if evaluate_condition(condition, collected_data):
+            cond_field = condition.get("field")
+            if cond_field and cond_field in collected_data:
                 return {"field": cond_field, "value": collected_data[cond_field]}
     return None
 
@@ -564,7 +671,9 @@ def validate_field(form, field_id, value, collected_data):
     if field_type == "password":
         value = str(value)
         if "regex" in rules:
-            if not re.match(rules["regex"], value):
+            match_result = re.match(rules["regex"], value)
+            print(f"[PASSWORD VALIDATION] input='{value}', regex='{rules['regex']}', result={'PASS' if match_result else 'FAIL'}")
+            if not match_result:
                 desc = rules.get("regex_description", f"matching pattern {rules['regex']}")
                 return False, f"{field['label']} must have {desc}."
         return True, None
@@ -789,10 +898,16 @@ def _filter_by_descendants(form, field_id, options, collected_data):
 
 
 def get_missing_fields(form, collected_data):
+    """Get missing fields using dynamic field states.
+    Only active + required fields that are not yet collected count as missing.
+    """
+    field_states = resolve_all_field_states(form, collected_data)
     missing = []
     for field in form["fields"]:
-        if field.get("required", False) and field["field_id"] not in collected_data:
-            missing.append(field["field_id"])
+        fid = field["field_id"]
+        state = field_states.get(fid, {})
+        if state.get("active", True) and state.get("required", False) and fid not in collected_data:
+            missing.append(fid)
     return missing
 
 
@@ -1064,21 +1179,32 @@ def chat(req: ChatRequest):
     is_update = intent == "update"
 
     # Step 2b: Handle sensitive fields (password) — use exact user input, not LLM output
+    # Detect if the last question was about a password field by checking
+    # what the next question WOULD be for the current collected_data state
     password_field_ids = [f["field_id"] for f in form["fields"] if f.get("type") == "password"]
     is_password_question = False
+
+    # Determine which field was being asked: find the first missing field that
+    # would have been asked (same logic as call_openai_next_question)
+    missing_now = get_missing_fields(form, collected_data)
+    currently_asking = None
+    for mfid in missing_now:
+        mfield = get_field(form, mfid)
+        if mfield and mfield["type"] == "dropdown":
+            valid_opts = get_valid_dropdown_values(form, mfid, collected_data)
+            if not valid_opts:
+                continue  # skip fields with no valid options yet
+        currently_asking = mfid
+        break
+
     for fid in password_field_ids:
-        if fid not in collected_data:
-            # Remove any LLM-extracted password (it may hallucinate)
-            extracted.pop(fid, None)
-            # Check if the password field is the next expected field
-            missing_now = get_missing_fields(form, collected_data)
-            if missing_now and missing_now[0] == fid:
-                is_password_question = True
-                # Use raw user message as the password value
-                extracted[fid] = req.message.strip()
-                # Clear all other extracted fields — when answering a password question,
-                # the entire message IS the password, not other field data
-                extracted = {fid: extracted[fid]}
+        # Always remove LLM-extracted passwords (prevents hallucination)
+        extracted.pop(fid, None)
+
+        if fid not in collected_data and currently_asking == fid:
+            is_password_question = True
+            # Use raw user message as the password value
+            extracted = {fid: req.message.strip()}
 
     # ===== ATOMIC TRANSACTION: validate everything before storing anything =====
     #
@@ -1176,90 +1302,24 @@ def chat(req: ChatRequest):
     # 1. Infer missing parents (state=Kerala → country=India)
     # 2. Re-validate ALL fields with full inferred context
     # 3. Repeat until stable (fixpoint)
-    resolved_data, inferred, all_conflicts = resolve_and_validate(form, candidate_data)
+    resolved_data, inferred, all_conflicts, removed_fields = resolve_and_validate(form, candidate_data)
 
     # Track which fields were inferred (not explicitly provided by user)
     auto_filled.update(inferred)
 
-    if all_conflicts:
-        # Conflicts detected — smart resolution:
-        # NEW fields (user's latest intent) → KEEP
-        # OLD fields that conflict → REMOVE and ask user to re-enter
-
-        new_field_ids = set(pending_data.keys()) | set(inferred.keys())
-        conflicting_old_fields = set()
-
-        for conflict in all_conflicts:
-            cfid = conflict.get("field")
-            if cfid and cfid in collected_data and cfid not in new_field_ids:
-                conflicting_old_fields.add(cfid)
-
-        if conflicting_old_fields:
-            # Remove conflicting old fields, keep new ones
-            for old_fid in conflicting_old_fields:
-                resolved_data.pop(old_fid, None)
-
-            # Re-validate after removal
-            resolved_data, _, remaining_conflicts = resolve_and_validate(form, resolved_data)
-
-            if not remaining_conflicts:
-                # Resolved — commit with old fields removed
-                collected_data = resolved_data
-                write_json("collected_data.json", collected_data)
-
-                removed_labels = []
-                for old_fid in conflicting_old_fields:
-                    f = get_field(form, old_fid)
-                    removed_labels.append(f"{f['label']} (was '{collected_data.get(old_fid, collected_data.get(old_fid))}' )" if f else old_fid)
-                    # Use original value for the message
-                for old_fid in conflicting_old_fields:
-                    f = get_field(form, old_fid)
-
-                removed_msgs = []
-                for old_fid in conflicting_old_fields:
-                    f = get_field(form, old_fid)
-                    old_val = collected_data.get(old_fid) or (pending_data.get(old_fid)) or "unknown"
-                    label = f["label"] if f else old_fid
-                    removed_msgs.append(f"{label}")
-
-                conflict_note = (
-                    f"Your input conflicts with: {', '.join(removed_msgs)}. "
-                    f"Those values have been cleared — please re-enter them with valid values."
-                )
-
-                missing = get_missing_fields(form, collected_data)
-                if missing:
-                    next_q = call_openai_next_question(form, collected_data, missing, auto_filled=auto_filled)
-                    response_msg = conflict_note + "\n\n" + next_q
-                else:
-                    response_msg = conflict_note
-
-                messages.append({"role": "assistant", "content": response_msg})
-                write_json("messages.json", messages)
-
-                safe_collected = dict(collected_data)
-                for field in form["fields"]:
-                    if field.get("type") == "password" and field["field_id"] in safe_collected:
-                        safe_collected[field["field_id"]] = "********"
-
-                return {
-                    "status": "pending",
-                    "message": response_msg,
-                    "collected_data": safe_collected,
-                    "missing_fields": missing,
-                    "invalid_fields": invalid_fields,
-                    "suggestions": get_suggestions(form, collected_data, missing, invalid_fields),
-                }
-
-            # Still conflicts after removal — use remaining_conflicts
-            all_conflicts = remaining_conflicts
-
-        # Full rollback — nothing from this batch is stored
+    if all_conflicts or invalid_fields:
+        # REJECT new input — existing state is immutable
+        # Never remove or modify existing valid data due to new conflicting input
         write_json("collected_data.json", collected_data)
 
-        conflict_suggestions = build_conflict_suggestions(form, all_conflicts, resolved_data)
-        all_errors = [{"field_id": c["field"], "value": c.get("value"), "error": c["reason"]} for c in all_conflicts]
+        # Build error details
+        all_errors = []
+        for c in all_conflicts:
+            all_errors.append({"field_id": c["field"], "value": c.get("value"), "error": c["reason"]})
         all_errors.extend(invalid_fields)
+
+        # Build suggestions for conflicts
+        conflict_suggestions = build_conflict_suggestions(form, all_conflicts, resolved_data) if all_conflicts else []
 
         error_msg = call_openai_error_message(form, all_errors, req.message, collected_data)
         missing = get_missing_fields(form, collected_data)
@@ -1270,6 +1330,8 @@ def chat(req: ChatRequest):
         else:
             response_msg = error_msg
 
+        status = "conflict" if all_conflicts else "pending"
+
         messages.append({"role": "assistant", "content": response_msg})
         write_json("messages.json", messages)
 
@@ -1278,44 +1340,17 @@ def chat(req: ChatRequest):
             if field.get("type") == "password" and field["field_id"] in safe_collected:
                 safe_collected[field["field_id"]] = "********"
 
-        return {
-            "status": "conflict",
+        result = {
+            "status": status,
             "message": response_msg,
             "collected_data": safe_collected,
             "missing_fields": missing,
             "invalid_fields": invalid_fields,
-            "conflicts": [{"field": c["field"], "reason": c["reason"]} for c in all_conflicts],
             "suggestions": conflict_suggestions + get_suggestions(form, collected_data, missing, invalid_fields),
         }
-
-    if invalid_fields:
-        # Per-field validation errors only → rollback
-        write_json("collected_data.json", collected_data)
-
-        error_msg = call_openai_error_message(form, invalid_fields, req.message, collected_data)
-        missing = get_missing_fields(form, collected_data)
-        if missing:
-            next_q = call_openai_next_question(form, collected_data, missing)
-            response_msg = error_msg + "\n\n" + next_q
-        else:
-            response_msg = error_msg
-
-        messages.append({"role": "assistant", "content": response_msg})
-        write_json("messages.json", messages)
-
-        safe_collected = dict(collected_data)
-        for field in form["fields"]:
-            if field.get("type") == "password" and field["field_id"] in safe_collected:
-                safe_collected[field["field_id"]] = "********"
-
-        return {
-            "status": "pending",
-            "message": response_msg,
-            "collected_data": safe_collected,
-            "missing_fields": missing,
-            "invalid_fields": invalid_fields,
-            "suggestions": get_suggestions(form, collected_data, missing, invalid_fields),
-        }
+        if all_conflicts:
+            result["conflicts"] = [{"field": c["field"], "reason": c["reason"]} for c in all_conflicts]
+        return result
 
     # --- Phase 4: COMMIT — all validations passed, no conflicts ---
     collected_data = resolved_data

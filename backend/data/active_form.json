@@ -299,6 +299,30 @@
       ]
     },
     {
+      "field_id": "pincode",
+      "label": "Pincode",
+      "type": "text",
+      "required": false,
+      "active": false,
+      "conditional_rules": [
+        {
+          "if": {
+            "field": "country",
+            "operator": "equals",
+            "value": "India"
+          },
+          "then": {
+            "active": true,
+            "required": true
+          }
+        }
+      ],
+      "validation_rules": {
+        "regex": "^[0-9]{6}$",
+        "regex_description": "a valid 6-digit pincode"
+      }
+    },
+    {
       "field_id": "password",
       "label": "Password",
       "type": "password",
