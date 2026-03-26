@@ -2,5 +2,269 @@
   {
     "role": "assistant",
     "content": "Great! I haven't received your full name yet. \n\nCould you please share your full name with me?"
+  },
+  {
+    "role": "user",
+    "content": "adithyan indian 45"
+  },
+  {
+    "role": "assistant",
+    "content": "Great, I've noted your name as Adithyan! \ud83d\ude0a\n\nWhat's your email address?"
+  },
+  {
+    "role": "user",
+    "content": "delete country"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it, I've removed the country from your details! \n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "india"
+  },
+  {
+    "role": "assistant",
+    "content": "Awesome! I've noted that your country is India. Just a quick reminder, I still need your email address. \n\nWhat\u2019s your email address?"
+  },
+  {
+    "role": "user",
+    "content": "delete age"
+  },
+  {
+    "role": "assistant",
+    "content": "Great, I've removed your age. \n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "delete name and change country to china"
+  },
+  {
+    "role": "assistant",
+    "content": "Great, I've noted that you've updated your country to China! \n\nCould you please tell me your age?"
+  },
+  {
+    "role": "user",
+    "content": "adithyan"
+  },
+  {
+    "role": "assistant",
+    "content": "Great, noted your name as Adithyan! \ud83d\ude0a\n\nCould you please tell me your age?"
+  },
+  {
+    "role": "user",
+    "content": "delete name"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! I've removed your full name. \n\nCould you please share your age?"
+  },
+  {
+    "role": "user",
+    "content": "34 7676765454 gshshs@jd.dhd"
+  },
+  {
+    "role": "assistant",
+    "content": "I didn't quite catch that. Could you please provide your Full Name?"
+  },
+  {
+    "role": "user",
+    "content": "adithyan 34 73635363536"
+  },
+  {
+    "role": "assistant",
+    "content": "Great! I've noted your name as Adithyan and your age as 34. \ud83d\ude0a\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "sshh@hdhd.cjjd"
+  },
+  {
+    "role": "assistant",
+    "content": "Awesome, I've noted your email as sshh@hdhd.cjjd! \n\nWhich state would you like to choose: Beijing or Guangdong?"
+  },
+  {
+    "role": "user",
+    "content": "Guangdong"
+  },
+  {
+    "role": "assistant",
+    "content": "Great, I've noted that your state is Guangdong! \n\nWhich district would you prefer \u2014 Guangzhou or Shenzhen?"
+  },
+  {
+    "role": "user",
+    "content": "Shenzhen"
+  },
+  {
+    "role": "assistant",
+    "content": "Awesome! I've noted your district as Shenzhen. \n\nCould you please let me know which ward you would like to choose: Ward100 or Ward200?"
+  },
+  {
+    "role": "user",
+    "content": "chnage country to india"
+  },
+  {
+    "role": "assistant",
+    "content": "Great, I've updated your country to India! \n\nWhat ward would you like to choose \u2014 Ward1 or Ward6?"
+  },
+  {
+    "role": "user",
+    "content": "Tamil Nadu"
+  },
+  {
+    "role": "assistant",
+    "content": "Awesome, I've noted that your state is Tamil Nadu! \n\nWhich district would you prefer \u2014 Chennai, Coimbatore, or Madurai?"
+  },
+  {
+    "role": "user",
+    "content": "delete tamilnadu"
+  },
+  {
+    "role": "assistant",
+    "content": "Great! I've removed the state you mentioned. \n\nCould you please select a state from the following options: Karnataka, Kerala, or Tamil Nadu?"
+  },
+  {
+    "role": "user",
+    "content": "Kerala"
+  },
+  {
+    "role": "assistant",
+    "content": "Awesome, I've noted that your state is Kerala! \n\nWhich district would you like to choose \u2014 Alappuzha, Ernakulam, or Kottayam?"
+  },
+  {
+    "role": "user",
+    "content": "Kottayam"
+  },
+  {
+    "role": "assistant",
+    "content": "Awesome! I've noted your district as Kottayam.\n\nWhat type of account would you like to open? You can choose from Savings, Current, or Fixed Deposit."
+  },
+  {
+    "role": "user",
+    "content": "delete kottayam"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! I've removed the district field. \n\nWhich district would you prefer \u2014 Alappuzha, Ernakulam, or Kottayam?"
+  },
+  {
+    "role": "user",
+    "content": "Kottayam"
+  },
+  {
+    "role": "assistant",
+    "content": "Awesome! I've noted your district as Kottayam. \n\nWhat type of account would you like to open \u2013 Savings, Current, or Fixed Deposit?"
+  },
+  {
+    "role": "user",
+    "content": "delete kerala"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! I've removed the state and district selections as requested.\n\nWhich state would you like to choose from Karnataka, Kerala, or Tamil Nadu?"
+  },
+  {
+    "role": "user",
+    "content": "change age to 10"
+  },
+  {
+    "role": "assistant",
+    "content": "It looks like there was an issue with the age you provided. The minimum age required to open a bank account is 18. Please enter an age that is 18 or older, and we can proceed with your application. Thank you!\n\nGreat, I've noted your details so far! \n\nWhich state would you like to select: Karnataka, Kerala, or Tamil Nadu?"
+  },
+  {
+    "role": "user",
+    "content": "change country to japan and age to 15"
+  },
+  {
+    "role": "assistant",
+    "content": "It looks like there\u2019s an issue with the age you provided. The minimum age required to open a bank account is 18. Please update your age to be at least 18, and I\u2019ll be happy to assist you further!\n\nAwesome, I've noted that your country is Japan! \n\nWhich state would you like to choose \u2014 Kansai or Kerala?"
+  },
+  {
+    "role": "user",
+    "content": "chnage age to 15"
+  },
+  {
+    "role": "assistant",
+    "content": "Awesome, I've confirmed your age as 15! Just a gentle reminder that I still need your state.\n\nCould you please let me know which state you'd like to choose \u2014 Kansai or Kerala?"
+  },
+  {
+    "role": "user",
+    "content": "chnage age to 10"
+  },
+  {
+    "role": "assistant",
+    "content": "It looks like there was an issue with the age you provided. The minimum age required to open a bank account is 15, and you currently have it set to 10. Please update your age to at least 15 to proceed. Let me know if you need any further assistance!\n\nGreat, noted your email as sshh@hdhd.cjjd! \ud83d\ude0a\n\nWhich state would you like to choose \u2014 Kansai or Kerala?"
+  },
+  {
+    "role": "user",
+    "content": "delete japan and change age to 10"
+  },
+  {
+    "role": "assistant",
+    "content": "It looks like there was an issue with the age you provided. You mentioned wanting to change your age to 10, but you previously entered it as 15. To update your age, please confirm by saying \"change age to 10.\" Let me know if you need any further assistance!\n\nGot it, I've removed the country selection. \n\nCould you please let me know which country you're from \u2014 India, Japan, or China?"
+  },
+  {
+    "role": "user",
+    "content": "Japan"
+  },
+  {
+    "role": "assistant",
+    "content": "Awesome! I've noted that your country is Japan. \n\nWhich state would you like to choose \u2014 Kansai or Kerala?"
+  },
+  {
+    "role": "user",
+    "content": "Kerala"
+  },
+  {
+    "role": "assistant",
+    "content": "Great, I've noted your state as Kerala!\n\nWhich district would you prefer \u2014 Tokyo or Yokohama?"
+  },
+  {
+    "role": "user",
+    "content": "Yokohama"
+  },
+  {
+    "role": "assistant",
+    "content": "Awesome! I've noted Yokohama as your district. \n\nNow, could you please tell me what type of account you would like to open? You can choose from Savings, Current, or Fixed Deposit."
+  },
+  {
+    "role": "user",
+    "content": "Current"
+  },
+  {
+    "role": "assistant",
+    "content": "Awesome, I've noted that you want a Current account! \n\nNow, could you please set a password for your account? It should have at least 6 characters, include one uppercase letter, and one special symbol."
+  },
+  {
+    "role": "user",
+    "content": "Adhi@123"
+  },
+  {
+    "role": "assistant",
+    "content": "All fields have been collected!"
+  },
+  {
+    "role": "user",
+    "content": "chnage country to india"
+  },
+  {
+    "role": "assistant",
+    "content": "Hello! It looks like there\u2019s an issue with the age you provided. Since you're opening a bank account in India, the minimum age requirement is 18. Currently, you indicated that you are 15.\n\nTo proceed, please enter an age of at least 18. If you have any other questions or need further assistance, feel free to ask!\n\nGreat, I've removed the country, state, and district as requested! \ud83d\ude0a\n\nCould you please let me know which country you're in \u2014 India, Japan, or China?"
+  },
+  {
+    "role": "user",
+    "content": "age 18"
+  },
+  {
+    "role": "assistant",
+    "content": "It looks like there was an issue with the age you provided. You initially entered your age as 15. If you'd like to change it to 18, please say, \"change age to 18.\" Let me know if you need any further assistance!\n\nAwesome! I've noted your account type as Current. \n\nCould you please tell me your country? Your options are India, Japan, or China!"
+  },
+  {
+    "role": "user",
+    "content": "chnage age to 18"
+  },
+  {
+    "role": "assistant",
+    "content": "Great! I've confirmed your age as 18. \n\nCould you please tell me your country? You can choose from India, Japan, or China."
   }
 ]

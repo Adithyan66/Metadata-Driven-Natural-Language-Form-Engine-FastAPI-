@@ -137,6 +137,40 @@ def chat(req: ChatRequest):
     is_uncertain = extracted.pop("_uncertain", False)
     intent = extracted.pop("_intent", "normal")
     is_update = intent == "update"
+    delete_fields = extracted.pop("_delete", [])
+    if not isinstance(delete_fields, list):
+        delete_fields = [delete_fields] if delete_fields else []
+
+    # Process deletes — remove fields + cascade hierarchy children + re-validate
+    deleted_labels = []
+    if delete_fields:
+        for del_fid in delete_fields:
+            if del_fid not in collected_data:
+                continue
+            field_def = get_field(form, del_fid)
+            label = field_def["label"] if field_def else del_fid
+
+            # Remove the field itself
+            collected_data.pop(del_fid, None)
+            deleted_labels.append(label)
+
+            # Cascade: remove hierarchy children (metadata-driven)
+            descendants = get_all_descendant_field_ids(form, del_fid)
+            for desc_fid in descendants:
+                if desc_fid in collected_data:
+                    desc_field = get_field(form, desc_fid)
+                    desc_label = desc_field["label"] if desc_field else desc_fid
+                    collected_data.pop(desc_fid)
+                    deleted_labels.append(f"{desc_label} (dependent)")
+
+        # Re-run fixpoint to clean up inactive fields after deletion
+        resolved_after_delete, _, _, removed_by_engine = resolve_and_validate(form, collected_data)
+        collected_data = resolved_after_delete
+        for rfid in removed_by_engine:
+            f = get_field(form, rfid)
+            deleted_labels.append(f"{f['label']} (no longer active)" if f else rfid)
+
+        write_json("collected_data.json", collected_data)
 
     # Post-extraction sanitizer — reject hallucinated values
     user_msg_lower = req.message.strip().lower()
@@ -183,8 +217,33 @@ def chat(req: ChatRequest):
 
     extracted = sanitized
 
-    # If nothing survived extraction + sanitization → re-ask
+    # If nothing survived extraction + sanitization
     if not extracted:
+        # If deletes happened, acknowledge them and ask next question
+        if deleted_labels:
+            missing = get_missing_fields(form, collected_data)
+            last_action = {"deleted": deleted_labels}
+            if missing:
+                response_msg = call_openai_next_question(form, collected_data, missing, last_action=last_action)
+            else:
+                response_msg = "All information has been collected. Thank you!"
+
+            messages.append({"role": "assistant", "content": response_msg})
+            write_json("messages.json", messages)
+            _save_currently_asking(form, collected_data)
+
+            new_asking, _ = get_currently_asking(form, collected_data)
+            return {
+                "status": "pending" if missing else "complete",
+                "message": response_msg,
+                "collected_data": _mask_sensitive(form, collected_data),
+                "missing_fields": missing,
+                "invalid_fields": [],
+                "suggestions": get_suggestions(form, collected_data, missing, currently_asking=new_asking),
+            }
+
+        # No deletes, no extractions — re-ask
+        currently_asking, currently_asking_field = get_currently_asking(form, collected_data)
         if currently_asking and currently_asking_field:
             label = currently_asking_field["label"]
             nudge_msg = f"I didn't quite catch that. Could you please provide your {label}?"
@@ -353,6 +412,8 @@ def chat(req: ChatRequest):
         inferred_clean = {k: v for k, v in auto_filled.items() if k not in pending_data and k in collected_data}
         if inferred_clean:
             last_action["inferred"] = inferred_clean
+        if deleted_labels:
+            last_action["deleted"] = deleted_labels
 
         error_msg = call_openai_error_message(form, all_errors, req.message, collected_data)
         if missing:
@@ -408,6 +469,10 @@ def chat(req: ChatRequest):
             last_action["auto_filled"] = auto_only
         if inferred_only:
             last_action["inferred"] = inferred_only
+
+        # What was deleted
+        if deleted_labels:
+            last_action["deleted"] = deleted_labels
 
         # Did user skip the asked question?
         if currently_asking and currently_asking in missing and extracted:

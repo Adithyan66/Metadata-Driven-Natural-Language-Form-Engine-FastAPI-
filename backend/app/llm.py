@@ -117,17 +117,26 @@ RULES:
    - If user explicitly changes existing value (e.g., "change age to 30") → include:
      "_intent": "update"
 
-10. STRICT OUTPUT:
+10. DELETE INTENT:
+    - If user wants to remove/delete/clear a field (e.g., "delete age", "remove country", "clear pincode"):
+      → Add "_delete": ["field_id_1", "field_id_2"] listing the field_ids to delete
+    - Delete can be combined with other operations in the same message:
+      - "delete country and update name to abc" → {{"_delete": ["country"], "full_name": "abc", "_intent": "update"}}
+      - "delete age and country india" → {{"_delete": ["age"], "country": "India"}}
+    - Only include field_ids that are CURRENTLY in collected data
+    - Map user's words to the correct field_id (e.g., "delete my name" → "full_name")
+
+11. STRICT OUTPUT:
     - Return ONLY valid mappings
     - Do NOT include fields with weak or doubtful matches
     - For number fields, return actual numbers not strings
 
-11. CONFIDENCE RULE:
+12. CONFIDENCE RULE:
     - Return {{"_uncertain": true}} ONLY when NO field matches at all
     - If at least one field was extracted confidently, return that field WITHOUT _uncertain
     - Precision > Recall (better to miss than to be wrong)
 
-12. SENSITIVE FIELDS:
+13. SENSITIVE FIELDS:
     - Password fields → always return ""
 
 Return ONLY a JSON object. No explanation."""
@@ -200,6 +209,11 @@ def call_openai_next_question(form, collected_data, missing_fields, last_action=
         if updated:
             items = ", ".join(f"{k}='{v}'" for k, v in updated.items())
             parts.append(f"User updated: {items}. Confirm the update briefly.")
+
+        deleted = last_action.get("deleted", [])
+        if deleted:
+            items = ", ".join(deleted)
+            parts.append(f"User deleted: {items}. Confirm the deletion briefly (e.g., 'Done, I've removed X'). If dependent fields were also removed, mention that naturally.")
 
         unanswered = last_action.get("unanswered_field")
         if unanswered:
