@@ -233,6 +233,15 @@ def get_field(form, field_id):
     return None
 
 
+def has_options(field):
+    """Check if a field type has selectable options (metadata-driven).
+    Instead of hardcoding type names, checks if the field has dropdown_options defined.
+    """
+    if not field:
+        return False
+    return bool(field.get("dropdown_options")) or bool(field.get("parent_field_id"))
+
+
 # --- Dependency graph & inference engine ---
 
 def build_dependency_graph(form):
@@ -732,10 +741,11 @@ def validate_field(form, field_id, value, collected_data):
 
 def get_valid_dropdown_values(form, field_id, collected_data):
     """Get valid dropdown values filtered BIDIRECTIONALLY.
+    Works for any field type that has dropdown_options (dropdown, multi_select, etc.).
     Filters by collected ancestors (top-down) AND collected descendants (bottom-up).
     """
     field = get_field(form, field_id)
-    if not field or field["type"] != "dropdown":
+    if not field or not has_options(field):
         return None
 
     # Simple dropdown (no hierarchy involvement)
@@ -912,26 +922,25 @@ def get_missing_fields(form, collected_data):
 
 
 def get_suggestions(form, collected_data, missing_fields, invalid_fields=None):
-    """Generate suggestions ONLY for dropdown fields that are immediately relevant:
-    - The next missing field (only if it's a dropdown)
-    - Any invalid dropdown fields
-    Never suggest for non-dropdown fields (text, number, password).
+    """Generate suggestions for fields that have selectable options.
+    Works for any field type with dropdown_options (dropdown, multi_select, etc.).
+    Only suggests for the currently relevant field, not all future fields.
     """
     suggestions = []
     target_field_ids = []
 
-    # Suggest for invalid dropdown fields
+    # Suggest for invalid fields that have options
     if invalid_fields:
         for inv in invalid_fields:
             field = get_field(form, inv["field_id"])
-            if field and field["type"] == "dropdown":
+            if field and has_options(field):
                 target_field_ids.append(inv["field_id"])
 
-    # Suggest for the NEXT missing field — only if it's a dropdown
+    # Suggest for the NEXT missing field — only if it has options
     if missing_fields:
         next_fid = missing_fields[0]
         next_field = get_field(form, next_fid)
-        if next_field and next_field["type"] == "dropdown":
+        if next_field and has_options(next_field):
             if next_fid not in target_field_ids:
                 target_field_ids.append(next_fid)
 

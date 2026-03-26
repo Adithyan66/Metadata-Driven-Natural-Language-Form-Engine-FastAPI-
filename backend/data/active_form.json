@@ -1,6 +1,6 @@
 {
-  "form_id": "bank_opening_form",
-  "title": "Bank Account Opening Form",
+  "form_id": "job_application_form",
+  "title": "Job Application Form",
   "fields": [
     {
       "field_id": "full_name",
@@ -8,249 +8,111 @@
       "type": "text",
       "required": true,
       "validation_rules": {
-        "min_length": 2,
-        "max_length": 100
+        "min_length": 3,
+        "max_length": 80
       }
     },
     {
-      "field_id": "age",
-      "label": "Age",
+      "field_id": "experience",
+      "label": "Years of Experience",
       "type": "number",
       "required": true,
       "validation_rules": {
         "min": 0,
-        "max": 120,
-        "conditional_rules": [
-          {
-            "if": {
-              "field": "country",
-              "equals": "India"
-            },
-            "then": {
-              "min": 18
-            }
-          },
-          {
-            "if": {
-              "field": "country",
-              "equals": "China"
-            },
-            "then": {
-              "min": 16
-            }
-          },
-          {
-            "if": {
-              "field": "country",
-              "equals": "Japan"
-            },
-            "then": {
-              "min": 15
-            }
-          }
-        ]
+        "max": 50
       }
     },
     {
-      "field_id": "email",
-      "label": "Email Address",
-      "type": "text",
-      "required": true,
-      "validation_rules": {
-        "regex": "^[\\w.-]+@[\\w.-]+\\.\\w{2,}$",
-        "regex_description": "a valid email address"
-      }
-    },
-    {
-      "field_id": "phone",
-      "label": "Phone Number",
-      "type": "text",
-      "required": true,
-      "validation_rules": {
-        "regex": "^\\+?[0-9]{7,15}$",
-        "regex_description": "a valid phone number (7-15 digits, optional + prefix)"
-      }
-    },
-    {
-      "field_id": "country",
-      "label": "Country",
+      "field_id": "job_role",
+      "label": "Job Role",
       "type": "dropdown",
       "required": true,
       "dropdown_options": [
+        {
+          "value": "Frontend Developer",
+          "meta": {
+            "min_experience": 1
+          }
+        },
+        {
+          "value": "Backend Developer",
+          "meta": {
+            "min_experience": 2
+          }
+        },
+        {
+          "value": "DevOps Engineer",
+          "meta": {
+            "min_experience": 3
+          }
+        },
+        {
+          "value": "Intern",
+          "meta": {
+            "max_experience": 1
+          }
+        }
+      ]
+    },
+    {
+      "field_id": "skills",
+      "label": "Skills",
+      "type": "multi_select",
+      "required": true,
+      "dropdown_options": [
+        {
+          "value": "JavaScript"
+        },
+        {
+          "value": "React"
+        },
+        {
+          "value": "Node.js"
+        },
+        {
+          "value": "Docker"
+        },
+        {
+          "value": "AWS"
+        }
+      ]
+    },
+    {
+      "field_id": "preferred_location",
+      "label": "Preferred Work Location",
+      "type": "dropdown",
+      "required": true,
+      "dropdown_options": [
+        {
+          "value": "Remote"
+        },
         {
           "value": "India",
           "children": {
-            "field_id": "state",
+            "field_id": "city",
             "options": [
               {
-                "value": "Kerala",
-                "children": {
-                  "field_id": "district",
-                  "options": [
-                    {
-                      "value": "Alappuzha",
-                      "children": {
-                        "field_id": "ward",
-                        "options": [
-                          {
-                            "value": "Ward1"
-                          },
-                          {
-                            "value": "Ward6"
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "value": "Ernakulam"
-                    },
-                    {
-                      "value": "Thiruvananthapuram"
-                    },
-                    {
-                      "value": "Kottayam"
-                    }
-                  ]
-                }
+                "value": "Bangalore"
               },
               {
-                "value": "Tamil Nadu",
-                "children": {
-                  "field_id": "district",
-                  "options": [
-                    {
-                      "value": "Chennai"
-                    },
-                    {
-                      "value": "Coimbatore"
-                    },
-                    {
-                      "value": "Madurai"
-                    }
-                  ]
-                }
+                "value": "Hyderabad"
               },
               {
-                "value": "Karnataka",
-                "children": {
-                  "field_id": "district",
-                  "options": [
-                    {
-                      "value": "Bangalore"
-                    },
-                    {
-                      "value": "Mysore"
-                    },
-                    {
-                      "value": "Mangalore"
-                    }
-                  ]
-                }
+                "value": "Kochi"
               }
             ]
           }
         },
         {
-          "value": "Japan",
+          "value": "USA",
           "children": {
-            "field_id": "state",
+            "field_id": "city",
             "options": [
               {
-                "value": "Kerala",
-                "children": {
-                  "field_id": "district",
-                  "options": [
-                    {
-                      "value": "Tokyo",
-                      "children": {
-                        "field_id": "ward",
-                        "options": [
-                          {
-                            "value": "Ward1"
-                          },
-                          {
-                            "value": "Ward2"
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "value": "Yokohama"
-                    }
-                  ]
-                }
+                "value": "New York"
               },
               {
-                "value": "Kansai",
-                "children": {
-                  "field_id": "district",
-                  "options": [
-                    {
-                      "value": "Osaka"
-                    },
-                    {
-                      "value": "Kyoto"
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "value": "China",
-          "children": {
-            "field_id": "state",
-            "options": [
-              {
-                "value": "Guangdong",
-                "children": {
-                  "field_id": "district",
-                  "options": [
-                    {
-                      "value": "Shenzhen",
-                      "children": {
-                        "field_id": "ward",
-                        "options": [
-                          {
-                            "value": "Ward100"
-                          },
-                          {
-                            "value": "Ward200"
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "value": "Guangzhou"
-                    }
-                  ]
-                }
-              },
-              {
-                "value": "Beijing",
-                "children": {
-                  "field_id": "district",
-                  "options": [
-                    {
-                      "value": "Haidian",
-                      "children": {
-                        "field_id": "ward",
-                        "options": [
-                          {
-                            "value": "Ward1"
-                          },
-                          {
-                            "value": "Ward2"
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "value": "Chaoyang"
-                    }
-                  ]
-                }
+                "value": "San Francisco"
               }
             ]
           }
@@ -258,79 +120,71 @@
       ]
     },
     {
-      "field_id": "state",
-      "label": "State",
+      "field_id": "city",
+      "label": "City",
       "type": "dropdown",
-      "required": true,
-      "parent_field_id": "country",
+      "required": false,
+      "parent_field_id": "preferred_location",
       "dropdown_options": []
     },
     {
-      "field_id": "district",
-      "label": "District",
-      "type": "dropdown",
+      "field_id": "expected_salary",
+      "label": "Expected Salary (USD)",
+      "type": "number",
       "required": true,
-      "parent_field_id": "state",
-      "dropdown_options": []
+      "validation_rules": {
+        "min": 1000,
+        "max": 1000000
+      },
+      "conditional_rules": [
+        {
+          "if": {
+            "field": "job_role",
+            "equals": "Intern"
+          },
+          "then": {
+            "max": 2000
+          }
+        }
+      ]
     },
     {
-      "field_id": "ward",
-      "label": "Ward",
-      "type": "dropdown",
-      "required": true,
-      "parent_field_id": "district",
-      "dropdown_options": []
-    },
-    {
-      "field_id": "account_type",
-      "label": "Account Type",
+      "field_id": "availability",
+      "label": "Availability",
       "type": "dropdown",
       "required": true,
       "dropdown_options": [
         {
-          "value": "Savings"
+          "value": "Immediate"
         },
         {
-          "value": "Current"
+          "value": "15 Days"
         },
         {
-          "value": "Fixed Deposit"
+          "value": "30 Days"
         }
       ]
     },
     {
-      "field_id": "pincode",
-      "label": "Pincode",
+      "field_id": "portfolio_url",
+      "label": "Portfolio URL",
       "type": "text",
       "required": false,
-      "active": false,
+      "validation_rules": {
+        "regex": "^(https?:\\/\\/)?([\\w.-]+)\\.([a-z\\.]{2,6})([\\/\\w .-]*)*\\/?$",
+        "regex_description": "a valid URL"
+      },
       "conditional_rules": [
         {
           "if": {
-            "field": "country",
-            "operator": "equals",
-            "value": "India"
+            "field": "job_role",
+            "equals": "Frontend Developer"
           },
           "then": {
-            "active": true,
             "required": true
           }
         }
-      ],
-      "validation_rules": {
-        "regex": "^[0-9]{6}$",
-        "regex_description": "a valid 6-digit pincode"
-      }
-    },
-    {
-      "field_id": "password",
-      "label": "Password",
-      "type": "password",
-      "required": true,
-      "validation_rules": {
-        "regex": "^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?\":{}|<>]).{6,}$",
-        "regex_description": "at least 6 characters, one uppercase letter, and one special symbol"
-      }
+      ]
     }
   ]
 }

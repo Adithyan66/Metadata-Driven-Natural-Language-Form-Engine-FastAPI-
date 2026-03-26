@@ -5,10 +5,66 @@
   },
   {
     "role": "user",
-    "content": "adhi adhi@hdid.sksj 8565458695 alappuzha age10"
+    "content": "adithyan india"
   },
   {
     "role": "assistant",
-    "content": "It looks like there was an issue with the age you provided. The minimum age required to open a bank account in India is 18 years. Please update your age to be at least 18, and then we can proceed with your application. Thank you!\n\nWhat is your full name?"
+    "content": "How many years of experience do you have in your field?"
+  },
+  {
+    "role": "user",
+    "content": "5"
+  },
+  {
+    "role": "assistant",
+    "content": "What job role are you applying for? You can choose from Frontend Developer, Backend Developer, DevOps Engineer, or Intern."
+  },
+  {
+    "role": "user",
+    "content": "Intern"
+  },
+  {
+    "role": "assistant",
+    "content": "What skills do you have that you'd like to highlight for this internship?"
+  },
+  {
+    "role": "user",
+    "content": "AWS"
+  },
+  {
+    "role": "assistant",
+    "content": "What skills do you have that you think would be a great fit for this internship? You can select multiple skills!"
+  },
+  {
+    "role": "user",
+    "content": "AWS"
+  },
+  {
+    "role": "assistant",
+    "content": "What skills do you have that would be relevant for this internship? You can select multiple skills!"
+  },
+  {
+    "role": "user",
+    "content": "Node.js"
+  },
+  {
+    "role": "assistant",
+    "content": "What is your expected salary in USD?"
+  },
+  {
+    "role": "user",
+    "content": "1500"
+  },
+  {
+    "role": "assistant",
+    "content": "Great to have you here, Adithyan! Could you please let me know your availability? You can choose from Immediate, 15 Days, or 30 Days."
+  },
+  {
+    "role": "user",
+    "content": "15 Days"
+  },
+  {
+    "role": "assistant",
+    "content": "All information has been collected. Thank you!"
   }
 ]
