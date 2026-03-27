@@ -162,5 +162,13 @@
   {
     "role": "assistant",
     "content": "I appreciate your input of \"ward 200,\" but it seems we're currently asking for your phone number instead. Please provide a valid phone number consisting of 7 to 15 digits without any prefixes. Thank you!"
+  },
+  {
+    "role": "user",
+    "content": "hi"
+  },
+  {
+    "role": "assistant",
+    "content": "Hello Adhi! Thank you for your message. It seems like I need your phone number, which should be between 7 to 15 digits long and shouldn\u2019t include any prefixes. Could you please provide that for me?"
   }
 ]
