@@ -1,8 +1,6 @@
 {
-  "full_name": "adithyan",
-  "age": 18,
-  "phone": "73635363536",
-  "email": "sshh@hdhd.cjjd",
-  "account_type": "Current",
-  "password": "Adhi@123"
+  "ward": "Ward200",
+  "country": "China",
+  "state": "Guangdong",
+  "district": "Shenzhen"
 }
