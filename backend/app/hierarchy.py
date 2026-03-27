@@ -287,14 +287,22 @@ def check_hierarchy_conflict(form, field_id, value, collected_data):
         if not descendant_conflict:
             return True, None
 
+    # Build error with field labels (not raw field_ids)
+    field_def = get_field(form, field_id)
+    field_label = field_def["label"] if field_def else field_id
+
+    # Ancestor conflict — value belongs to a different parent than what's collected
     for match in field_matches:
         for parent_fid, parent_val in match["parents"].items():
             if parent_fid in collected_data and collected_data[parent_fid].lower() != parent_val.lower():
+                parent_field = get_field(form, parent_fid)
+                parent_label = parent_field["label"] if parent_field else parent_fid
                 return False, (
-                    f"'{value}' belongs to {parent_fid}='{parent_val}', "
-                    f"but you already selected {parent_fid}='{collected_data[parent_fid]}'."
+                    f"'{value}' belongs to {parent_label}='{parent_val}', "
+                    f"but you already selected {parent_label}='{collected_data[parent_fid]}'."
                 )
 
+    # Descendant conflict — a child/grandchild value doesn't exist under the new value
     for desc_fid in all_descendants:
         if desc_fid in collected_data:
             desc_val = collected_data[desc_fid]
@@ -305,13 +313,16 @@ def check_hierarchy_conflict(form, field_id, value, collected_data):
                 for m in desc_matches
             )
             if not valid:
+                desc_field = get_field(form, desc_fid)
+                desc_label = desc_field["label"] if desc_field else desc_fid
                 return False, (
-                    f"'{desc_val}' ({desc_fid}) does not belong to "
-                    f"{field_id}='{value}'. Please correct {desc_fid} or "
-                    f"choose a different {field_id}."
+                    f"Cannot set {field_label} to '{value}' because you already selected "
+                    f"{desc_label}='{desc_val}', which does not belong under '{value}'. "
+                    f"To change {field_label}, first remove or update {desc_label} "
+                    f"(say 'delete {desc_label.lower()}' or 'change {desc_label.lower()} to ...')."
                 )
 
-    return False, f"'{value}' is not valid for {field_id} given the current selections."
+    return False, f"'{value}' is not valid for {field_label} given the current selections."
 
 
 def validate_hierarchy_consistency(form, collected_data):

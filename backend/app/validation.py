@@ -172,7 +172,27 @@ def validate_field(form, field_id, value, collected_data):
         if valid_options:
             matched = [o for o in valid_options if o.lower() == str(value).lower()]
             if not matched:
-                return False, f"'{value}' is not valid for {field['label']}. Valid options: {valid_options}"
+                # Build a clear reason explaining WHY options are limited
+                # Check if a descendant field is constraining this field
+                from app.hierarchy import get_all_descendant_field_ids
+                constraining_fields = []
+                descendants = get_all_descendant_field_ids(form, field_id)
+                for desc_fid in descendants:
+                    if desc_fid in collected_data:
+                        desc_field = get_field(form, desc_fid)
+                        desc_label = desc_field["label"] if desc_field else desc_fid
+                        constraining_fields.append(f"{desc_label}='{collected_data[desc_fid]}'")
+
+                if constraining_fields:
+                    reason = (
+                        f"'{value}' is not valid for {field['label']} because you already selected "
+                        f"{', '.join(constraining_fields)} which only belongs under "
+                        f"{', '.join(valid_options)}. To change {field['label']}, "
+                        f"first update or remove {', '.join(constraining_fields)}."
+                    )
+                else:
+                    reason = f"'{value}' is not valid for {field['label']}. Valid options: {', '.join(valid_options)}"
+                return False, reason
         elif parent_fid and parent_fid not in collected_data:
             all_matches = find_value_in_hierarchy(form, str(value))
             matched_for_field = [m for m in all_matches if m["field_id"] == field_id]

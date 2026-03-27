@@ -1,7 +1,6 @@
 [
   {
     "role": "assistant",
-
     "content": "Got it! We're ready to proceed with your bank account opening.\n\nCould you please share your full legal name?"
   },
   {
@@ -171,5 +170,293 @@
   {
     "role": "assistant",
     "content": "Hello Adhi! Thank you for your message. It seems like I need your phone number, which should be between 7 to 15 digits long and shouldn\u2019t include any prefixes. Could you please provide that for me?"
+  },
+  {
+    "role": "user",
+    "content": "hi"
+  },
+  {
+    "role": "assistant",
+    "content": "Hello! Thank you for your message. However, I need your phone number, which should be between 7 to 15 digits long without any prefixes. Could you please provide that?"
+  },
+  {
+    "role": "user",
+    "content": "how may districts in keraala"
+  },
+  {
+    "role": "assistant",
+    "content": "In Kerala, there are 14 districts. The districts include Alappuzha, Ernakulam, Kottayam, Thiruvananthapuram, and others.\n\nGot it! I have your personal details recorded.\n\nCould you please provide your phone number?"
+  },
+  {
+    "role": "user",
+    "content": "hi"
+  },
+  {
+    "role": "assistant",
+    "content": "Hello Adhi! I appreciate your message, but it seems we didn't quite capture the phone number we need. Could you please provide your phone number? It should be between 7 to 15 digits without any prefixes. Thank you!"
+  },
+  {
+    "role": "user",
+    "content": "85458965856589565"
+  },
+  {
+    "role": "assistant",
+    "content": "I see you're trying to set your phone number. However, the number you provided, \"85458965856589565\", is too long, as it must be between 7 to 15 digits only. Please provide a value that meets this requirement.\n\nGot it! Your full name, age, email, district, country, and state have been recorded.\n\nCould you please provide your phone number? It should be between 7 to 15 digits long."
+  },
+  {
+    "role": "user",
+    "content": "chnage country to china"
+  },
+  {
+    "role": "assistant",
+    "content": "I appreciate your input about changing the country to China, but it seems we need to collect your phone number next. Please provide a valid phone number that is between 7 to 15 digits long, without any prefixes. Thank you!"
+  },
+  {
+    "role": "user",
+    "content": "delete country"
+  },
+  {
+    "role": "assistant",
+    "content": "Noted! You\u2019ve deleted the country, state, and district information. \n\nCould you please provide your phone number? It should be between 7 to 15 digits."
+  },
+  {
+    "role": "user",
+    "content": "india"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've confirmed your country as India. \n\nCould you please provide your Phone Number? It should be between 7 to 15 digits, without any prefix."
+  },
+  {
+    "role": "user",
+    "content": "chnage country to china"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! Your country has been updated to China.\n\nCould you please provide your phone number? It should be between 7 to 15 digits, without any prefixes."
+  },
+  {
+    "role": "user",
+    "content": "change country to india"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've updated your country to India. \n\nCould you please provide your Phone Number? It should be between 7 to 15 digits long."
+  },
+  {
+    "role": "user",
+    "content": "ward200"
+  },
+  {
+    "role": "assistant",
+    "content": "I see you mentioned \"ward200,\" but right now I'm looking for your phone number. Please provide a valid phone number consisting of 7 to 15 digits, without any prefixes. Thank you!"
+  },
+  {
+    "role": "user",
+    "content": "ward200"
+  },
+  {
+    "role": "assistant",
+    "content": "Thank you for your input, Adhi! I noticed that you mentioned \"Ward200,\" but unfortunately, this isn't a valid option given your current selections. Since you selected India as your country, the available wards are Ward1 and Ward6. Could you please provide your phone number now? Remember, it should be between 7 to 15 digits long."
+  },
+  {
+    "role": "user",
+    "content": "ward200"
+  },
+  {
+    "role": "assistant",
+    "content": "Thank you for your response! I noticed you mentioned \"Ward200,\" but unfortunately, that's not a valid ward based on your current selection of district and state. Since you selected India, the available wards are Ward1 and Ward6. \n\nCould you please provide your phone number? Remember, it should be between 7 to 15 digits. I'm here to help!"
+  },
+  {
+    "role": "user",
+    "content": "ward200"
+  },
+  {
+    "role": "assistant",
+    "content": "I appreciate your input of \"ward200,\" but unfortunately, it\u2019s not a valid choice based on your current selections. Since you selected India as your country, the available wards are Ward1 and Ward6. Could you please provide your phone number? It should be a valid number with 7 to 15 digits. Thank you!"
+  },
+  {
+    "role": "user",
+    "content": "remove country"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've deleted the country.\n\nCould you please provide your phone number? It should be between 7 to 15 digits."
+  },
+  {
+    "role": "user",
+    "content": "ward200"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! Your ward has been saved as Ward200, and I\u2019ve auto-filled your country as China, state as Guangdong, and district as Shenzhen.\n\nCould you please provide your phone number? It should be between 7 to 15 digits long, without any prefixes."
+  },
+  {
+    "role": "user",
+    "content": "remove state"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've deleted the state, district, and ward details.\n\nCould you please provide your phone number? It should be between 7 to 15 digits long."
+  },
+  {
+    "role": "user",
+    "content": "ward200"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! Your ward is set to Ward200, and I've filled in your state as Guangdong and district as Shenzhen.\n\nCould you please provide your phone number? It should be between 7 to 15 digits, without any prefixes."
+  },
+  {
+    "role": "user",
+    "content": "remove distr"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've deleted the district and ward information.\n\nCould you please provide your phone number? It should be between 7 to 15 digits long."
+  },
+  {
+    "role": "user",
+    "content": "set any district under the state"
+  },
+  {
+    "role": "assistant",
+    "content": "Great! I've noted that your district is now Guangzhou. \n\nCould you please provide your phone number? It should be between 7 to 15 digits long."
+  },
+  {
+    "role": "user",
+    "content": "set kerala as the state"
+  },
+  {
+    "role": "assistant",
+    "content": "I appreciate your attempt to set the state to \"Kerala.\" However, since you selected China as your country, \"Kerala\" isn't available; the only option under China is Guangdong. Could you please provide your phone number instead? It should be between 7 to 15 digits. Thank you!"
+  },
+  {
+    "role": "user",
+    "content": "change to india and kerala"
+  },
+  {
+    "role": "assistant",
+    "content": "I appreciate your input! However, I need to inform you that \"India\" is not a valid country since you selected \"China\" as your country. Additionally, \"Kerala\" is not available under \"China\" as the state; currently, the only available option is \"Guangdong.\" Could you please provide your phone number? It should be between 7 to 15 digits long. Thank you!"
+  },
+  {
+    "role": "user",
+    "content": "chnage to india"
+  },
+  {
+    "role": "assistant",
+    "content": "I appreciate your attempt to change the country to India, but unfortunately, since you selected China as your country, India is not a valid option. Currently, your available country is China. Could you please provide your phone number, ensuring it consists of 7 to 15 digits? Thank you!"
+  },
+  {
+    "role": "user",
+    "content": "delete china"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've successfully deleted the country, state, and district information.\n\nNow, could you please provide your phone number? It should be between 7 to 15 digits without any prefixes."
+  },
+  {
+    "role": "user",
+    "content": "india kerala"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've selected India as your country and Kerala as your state.\n\nCould you please provide your phone number? It should be between 7 to 15 digits only."
+  },
+  {
+    "role": "user",
+    "content": "change state to tamilnadu"
+  },
+  {
+    "role": "assistant",
+    "content": "Noted! Your state has been successfully updated to Tamil Nadu. \n\nCould you please provide your phone number? It should be between 7 to 15 digits, without any prefixes."
+  },
+  {
+    "role": "user",
+    "content": "district alappuzha"
+  },
+  {
+    "role": "assistant",
+    "content": "I appreciate your attempt to set the district to \"Alappuzha,\" but it\u2019s not available under the selected state of Tamil Nadu. The districts you can choose from in Tamil Nadu are Chennai, Coimbatore, and Madurai. Could you please provide your phone number? Remember, it should be between 7 to 15 digits long. Thank you!"
+  },
+  {
+    "role": "user",
+    "content": "chennai"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! Your district has been noted as Chennai. \n\nCould you please provide your phone number? It should be between 7 to 15 digits long without any prefixes."
+  },
+  {
+    "role": "user",
+    "content": "chnage state to kerala"
+  },
+  {
+    "role": "assistant",
+    "content": "I appreciate your attempt to change your state to Kerala! However, since you selected India as your country, the available state options are limited to Tamil Nadu. Currently, Tamil Nadu is the only option under India. \n\nCould you please provide your phone number? Remember, it should be between 7 to 15 digits. Thank you!"
+  },
+  {
+    "role": "user",
+    "content": "hi"
+  },
+  {
+    "role": "assistant",
+    "content": "I appreciate your message! However, it seems like I didn't receive the phone number we need to proceed. Please remember that the phone number should be between 7 to 15 digits long without any prefixes. Could you provide that for me? Thank you!"
+  },
+  {
+    "role": "user",
+    "content": "chnage state to kerala"
+  },
+  {
+    "role": "assistant",
+    "content": "I appreciate your effort to update your state to Kerala. However, since you selected India as your country, Kerala is not an available option under Tamil Nadu. The only state you can choose is Tamil Nadu. \n\nCould you please provide your phone number? Remember, it should be between 7 to 15 digits. Thank you!"
+  },
+  {
+    "role": "user",
+    "content": "chnage state to kerala"
+  },
+  {
+    "role": "assistant",
+    "content": "I appreciate your effort to update your state to \"Kerala,\" but unfortunately, it's not available under the selected country, India. Currently, the only option for your state is Tamil Nadu. Could you please provide your phone number? Remember, it should be between 7 to 15 digits. Thank you!"
+  },
+  {
+    "role": "user",
+    "content": "chnage state to kerala"
+  },
+  {
+    "role": "assistant",
+    "content": "I appreciate your attempt to change the state to Kerala! However, I can't update the state to Kerala because you have already selected Chennai as the district, which belongs under Tamil Nadu. To change the state, you'll first need to update or remove the district. \n\nCould you please provide your phone number? Remember, it should be between 7 to 15 digits, without any prefixes."
+  },
+  {
+    "role": "user",
+    "content": "list wards in vhennai"
+  },
+  {
+    "role": "assistant",
+    "content": "In Chennai, you can choose from the following wards: \n\n- Ward1\n- Ward6\n\nGot it! I've saved your details so far.\n\nCould you please provide your phone number? It should be between 7 to 15 digits long, without any prefix."
+  },
+  {
+    "role": "user",
+    "content": "ward1"
+  },
+  {
+    "role": "assistant",
+    "content": "I see you're trying to set your ward as \"Ward1.\" However, this value does not belong to the District of Chennai in Tamil Nadu. Since you selected Tamil Nadu, the available wards are specific to this state. \n\nPlease check for the correct ward options for Chennai and provide one that matches. If you need any assistance, feel free to ask!\n\nGot it! I have saved your details so far.\n\nCould you please provide your phone number? It should be between 7 to 15 digits, without any prefixes."
+  },
+  {
+    "role": "user",
+    "content": "ward 200"
+  },
+  {
+    "role": "assistant",
+    "content": "I see you're trying to set your ward as \"Ward200.\" However, this value belongs to China, while you have selected India as your Country. Since you selected Chennai as your District, the available ward options are specific to that location. Please provide a valid ward for Chennai, such as \"Ward1\" or \"Ward6.\"\n\nGreat! I've noted your details so far. \n\nCould you please provide your phone number? It should be between 7 to 15 digits without any prefixes."
+  },
+  {
+    "role": "user",
+    "content": "ward6"
+  },
+  {
+    "role": "assistant",
+    "content": "I see you're trying to set your ward to \"Ward6.\" However, this value belongs to the state of Kerala, while you have selected Tamil Nadu as your state. Since you selected Tamil Nadu, the available ward options are specific to that region. \n\nPlease let me know if you need assistance in selecting the correct ward for Chennai!\n\nGot it! I've saved your details, including your name, age, email, country, state, and district.\n\nNow, may I please have your phone number? It should be between 7 to 15 digits."
   }
 ]

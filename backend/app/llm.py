@@ -372,8 +372,10 @@ LANGUAGE (CRITICAL):
 
 # === Nudge (uncertain input) ===
 
-def call_openai_nudge_message(user_message, form, collected_data, currently_asking=None, currently_asking_field=None):
-    """Generate a helpful message when the system couldn't understand the user's input."""
+def call_openai_nudge_message(user_message, form, collected_data, currently_asking=None, currently_asking_field=None, dropped_fields=None):
+    """Generate a helpful message when the system couldn't process the user's input.
+    Includes context about WHY specific values were rejected.
+    """
     form_prompt = _get_form_prompt(form)
 
     asking_info = ""
@@ -389,11 +391,21 @@ def call_openai_nudge_message(user_message, form, collected_data, currently_aski
 
         rules = currently_asking_field.get("validation_rules", {})
         if rules:
-            clean_rules = {k: v for k, v in rules.items() if k != "conditional_rules"}
+            clean_rules = {k: v for k, v in rules.items() if k not in ("conditional_rules", "regex")}
+            if "regex_description" in rules:
+                clean_rules["format"] = rules["regex_description"]
             if clean_rules:
                 asking_info += f"\nRequirements: {json.dumps(clean_rules)}"
 
-    system_prompt = f"""You are a warm, helpful form assistant. The user provided input that we couldn't match to any field.
+    # Build dropped context — explains WHY the user's input was rejected
+    dropped_context = ""
+    if dropped_fields:
+        dropped_lines = []
+        for d in dropped_fields:
+            dropped_lines.append(f'- Tried to set {d["field"]}: "{d["value"]}" → Rejected because: {d["reason"]}')
+        dropped_context = f"\n\nREJECTED VALUES (explain these to the user):\n" + "\n".join(dropped_lines)
+
+    system_prompt = f"""You are a warm, helpful form assistant. The user provided input that couldn't be processed.
 
 Form: {form['title']}
 {f"FORM CONTEXT: {form_prompt}" if form_prompt else ""}
@@ -403,16 +415,19 @@ Already collected: {json.dumps(collected_data)}
 {asking_info}
 
 User said: "{user_message}"
+{dropped_context}
 
 Generate a friendly response that:
-1. Acknowledges what the user said (don't ignore their input)
-2. Explains briefly why it didn't match (wrong type, not a valid option, etc.)
-3. Clearly re-asks for the field we need, with helpful hints
-4. If the field has specific options, mention them naturally
-5. Keep it concise — max 2-3 sentences
+1. If values were REJECTED: explain WHY each was rejected using the reasons above.
+   - For hierarchy rejections: explain which parent selection limits the choices
+   - Show the available alternatives naturally
+2. Acknowledge the user's intent (don't dismiss what they tried to do)
+3. Then re-ask for the field we need, with helpful hints
+4. Keep it concise — max 3-4 sentences total
 
 LANGUAGE:
-- NEVER use internal terms like "dropdown", "field_id", "valid_options", "extraction"
+- NEVER use internal terms like "dropdown", "field_id", "valid_options", "extraction", "sanitizer"
+- Say "since you selected [parent] as [value]" — NOT "the parent_field_id limits options"
 - Sound like a real person helping, not a system error
 - Be encouraging, not robotic
 
