@@ -2,7 +2,7 @@
   {
     "form_id": "bank_opening_form",
     "title": "Bank Account Opening Form",
-    "system_prompt": "This is a bank account opening form. The user needs to provide personal details and address information. Country, State, District, and Ward form a hierarchical location system — each level narrows the next. Age requirements vary by country (India: 18+, China: 16+, Japan: 15+). Pincode is only required for Indian applicants. The password must meet security requirements. Use a formal but friendly banking tone. Address the user professionally.",
+    "system_prompt": "This is a bank account opening form. The user needs to provide personal details and address information. Country, State, District, and Ward form a hierarchical location system — each level narrows the next. Ward values follow a pattern like Ward1, Ward2, Ward6, Ward100, Ward200 — if the user mentions anything like 'ward200' or 'my ward is ward1', map it to the ward field. Age requirements vary by country (India: 18+, China: 16+, Japan: 15+). Pincode is only required for Indian applicants (6 digits). The password must meet security requirements. Use a formal but friendly banking tone. Address the user professionally.",
     "fields": [
       {
         "field_id": "full_name",
