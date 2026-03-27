@@ -1,15 +1,87 @@
 [
   {
     "role": "assistant",
-    "content": "Got it! Let's move forward with your application.\n\nCould you please provide your full name?"
+    "content": "Got it! \n\nNow, could you please provide your full legal name?"
   },
   {
     "role": "user",
-    "content": "wars 200"
+    "content": "adhi 15"
   },
   {
     "role": "assistant",
-    "content": "I didn't quite catch that. Could you please provide your Full Name?"
+    "content": "Got it! Your full name and age have been saved.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "india"
+  },
+  {
+    "role": "assistant",
+    "content": "Thank you for your response, Adhi. It appears that the age you provided is 15, which does not meet the minimum requirement of 18 years for opening a bank account in India. \n\nPlease let us know if you have a different age to provide, or if you would like to explore options available for minors. We're here to assist you!\n\nGreat! I've noted your name and age.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "japan"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've chosen Japan as your country.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "change age to 18"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! Your age has been updated to 18. \n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "chnage country to india"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've selected India as your country.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "chnage age to 15"
+  },
+  {
+    "role": "assistant",
+    "content": "Thank you for your input, Adhi. However, I noticed that the age you provided, 15, does not meet the minimum requirement for opening a bank account in India, which is 18 years. Please provide an age of 18 or older to proceed with your application. If you have any further questions, feel free to ask!\n\nGot it! I have your full name, age, and country saved.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "delete country"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've deleted the country.\n\nWhat is your email address?"
+  },
+  {
+    "role": "user",
+    "content": "india"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've chosen India as your country. \n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "remove inda"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've deleted the country selection.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "give all contry list"
+  },
+  {
+    "role": "assistant",
+    "content": "You can choose from the following countries to open your bank account: India, Japan, and China.\n\nGot it! You've provided your full name as Adhi and your age as 18. \n\nCould you please share your email address?"
   },
   {
     "role": "user",
@@ -17,6 +89,286 @@
   },
   {
     "role": "assistant",
-    "content": "I didn't quite catch that. Could you please provide your Full Name?"
+    "content": "Got it! Your ward has been successfully noted as Ward200, and I've auto-filled your country as China, state as Guangdong, and district as Shenzhen.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "delete ward"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! I've noted that the ward has been deleted.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "chnage country to india"
+  },
+  {
+    "role": "assistant",
+    "content": "I didn't quite catch that. Could you please provide your Email Address?"
+  },
+  {
+    "role": "user",
+    "content": "remove china"
+  },
+  {
+    "role": "assistant",
+    "content": "Noted! The country, state, and district information has been cleared.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "my state is kerala"
+  },
+  {
+    "role": "assistant",
+    "content": "Great! I've noted that your state is Kerala. \n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "my country is china"
+  },
+  {
+    "role": "assistant",
+    "content": "I didn't quite catch that. Could you please provide your Email Address?"
+  },
+  {
+    "role": "user",
+    "content": "japan"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've selected Japan as your country.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "country india"
+  },
+  {
+    "role": "assistant",
+    "content": "It seems there was a misunderstanding regarding the country you provided. You previously selected \"Japan\" as your country. If you would like to change it to \"India,\" please confirm by saying, \"change country to India.\" Thank you!\n\nGot it! Your name, age, and state have been noted. \n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "remove japan"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You\u2019ve removed the country and state from your details.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "kerala"
+  },
+  {
+    "role": "assistant",
+    "content": "Great! I've noted that your state is Kerala. \n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "japan"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've chosen Japan as your country. \n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "remove kerala and japan"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've successfully deleted the state and country.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "tamilnadu"
+  },
+  {
+    "role": "assistant",
+    "content": "Great! I've noted that your state is Tamil Nadu and your country is India. \n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "japan"
+  },
+  {
+    "role": "assistant",
+    "content": "I didn't quite catch that. Could you please provide your Email Address?"
+  },
+  {
+    "role": "user",
+    "content": "remove india"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've successfully removed the country and state information. \n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "japan"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've chosen Japan as your country.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "tamilnd"
+  },
+  {
+    "role": "assistant",
+    "content": "I didn't quite catch that. Could you please provide your Email Address?"
+  },
+  {
+    "role": "user",
+    "content": "thamilnd"
+  },
+  {
+    "role": "assistant",
+    "content": "I didn't quite catch that. Could you please provide your Email Address?"
+  },
+  {
+    "role": "user",
+    "content": "thamilnadu"
+  },
+  {
+    "role": "assistant",
+    "content": "I didn't quite catch that. Could you please provide your Email Address?"
+  },
+  {
+    "role": "user",
+    "content": "state list"
+  },
+  {
+    "role": "assistant",
+    "content": "Since you have selected Japan as your country, you can choose from the following states:\n\n- Kerala\n- Kansai\n\nGreat! I\u2019ve noted your name, age, and country.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "give all states"
+  },
+  {
+    "role": "assistant",
+    "content": "Since you have selected Japan as your country, the available states are:\n\n- Kerala\n- Kansai\n\nGot it! Your full name, age, and country have been noted.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "serala"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've provided your state as Kerala. \n\nCould you please share your email address?"
+  },
+  {
+    "role": "user",
+    "content": "remove kerala"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! The state has been deleted. \n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "state kerala"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've chosen the state of Kerala.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "list all districts"
+  },
+  {
+    "role": "assistant",
+    "content": "Since you have selected Japan and the state of Kerala, the available districts are:\n\n- Tokyo\n- Yokohama\n\nGot it! Your name, age, country, and state have been saved.\n\nNow, could you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "tokyo"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've provided Tokyo as your district.\n\nCould you please share your email address?"
+  },
+  {
+    "role": "user",
+    "content": "list all wards"
+  },
+  {
+    "role": "assistant",
+    "content": "Under Tokyo, you can choose between Ward1 and Ward2.\n\nGot it! You've provided your name, age, country, state, and district. \n\nCould you please share your email address?"
+  },
+  {
+    "role": "user",
+    "content": "ward2"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've provided your ward as Ward2. \n\nCould you please share your email address with me?"
+  },
+  {
+    "role": "user",
+    "content": "delete tokyo"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! The district and ward have been deleted.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "tamilnadu"
+  },
+  {
+    "role": "assistant",
+    "content": "I didn't quite catch that. Could you please provide your Email Address?"
+  },
+  {
+    "role": "user",
+    "content": "india"
+  },
+  {
+    "role": "assistant",
+    "content": "Thank you for your response. It seems there was an attempt to change the country from 'Japan' to 'India'. If you would like to proceed with this change, please say, \"change country to India.\" Otherwise, if 'Japan' is correct, we can continue with the current information. Let me know how you would like to proceed!\n\nGreat! I've noted your details including your name, age, country, and state.\n\nNow, could you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "list all collected data"
+  },
+  {
+    "role": "assistant",
+    "content": "Here is the summary of the collected data:\n\n- Full Name: adhi\n- Age: 18\n- Country: Japan\n- State: Kerala\n\nIf you need any further information or assistance, feel free to ask!\n\nGot it! I have your name, age, country, and state saved.\n\nNow, could you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "chnage country to india"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've updated your country to India. \n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "856578956"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! Your phone number has been saved.\n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "857895654"
+  },
+  {
+    "role": "assistant",
+    "content": "It seems you provided a new phone number, \"857895654.\" However, you had already submitted \"856578956.\" If you would like to update your phone number, please say, \"change phone number to 857895654.\" Thank you!\n\nGot it! I've noted your full name, age, country, and phone number. \n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "nijfvdidfdn@ijfn"
+  },
+  {
+    "role": "assistant",
+    "content": "I didn't quite catch that. Could you please provide your Email Address?"
   }
 ]

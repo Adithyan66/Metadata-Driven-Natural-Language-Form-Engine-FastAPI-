@@ -60,61 +60,68 @@ def _get_form_prompt(form):
 
 EXTRACTION_RULES = """RULES:
 
-1. Extract ALL fields explicitly or implicitly mentioned by the user.
+1. HIGH-CONFIDENCE PATTERN OVERRIDE (HIGHEST PRIORITY):
+   These patterns ALWAYS map to their field, REGARDLESS of which field is currently being asked:
+   - Email pattern (contains @ and domain) → email field
+   - Phone pattern (7-15 digits, optional +) → phone field
+   - Known structured patterns defined in FORM CONTEXT (e.g., ward patterns) → respective field
+   If input matches a high-confidence pattern, map it immediately. Do NOT force it to the currently asking field.
 
-2. CURRENTLY ASKING PRIORITY:
-   - If the user gives a short/direct answer, assume it is for the CURRENTLY ASKING field
-   - BUT ONLY if it passes BOTH:
-     a) TYPE MATCH
-     b) SEMANTIC MATCH (the value logically belongs to that field)
+2. BEST-FIT MATCHING (NOT currently-asking-first):
+   - Compare input against ALL uncollected fields
+   - Choose the field with the STRONGEST semantic + type match
+   - Currently asking field gets priority ONLY when match strength is equal
+   - Example: asking for "name", user says "adhi@gmail.com" → email (pattern match wins)
+   - Example: asking for "name", user says "adhi" → full_name (semantic match, fits asked field)
 
 3. TYPE MATCH (STRICT):
    - number → must be numeric (e.g., 25)
-   - text → must be meaningful text (not random unrelated values)
-   - dropdown → must be one of valid_options
+   - text → must be meaningful text
+   - dropdown → must be one of valid_options (allow fuzzy: "kerla" → "Kerala")
 
-4. SEMANTIC MATCH (VERY IMPORTANT):
-   - Even if a value is valid somewhere in the form, DO NOT assign it unless it logically belongs to the field
-   - Example:
-     - Asking: age (number), User: "India" → map to country, NOT age
-     - Asking: age, User: "adhi" → NOT a number, DO NOT guess age=18
+4. SEMANTIC MATCH:
+   - Assign value only to the field it logically belongs to
+   - Example: Asking age, User says "India" → map to country, NOT age
+   - Example: Asking age, User says "adhi" → NOT a number, DO NOT guess age=18
 
-5. CROSS-FIELD MATCHING:
-   - If the value does NOT fit CURRENTLY ASKING field → try OTHER uncollected fields
+5. FUZZY MATCHING:
+   - Normalize casing and spacing to match known options
+   - Allow minor spelling variations for known values (defined in FORM CONTEXT)
+   - "kerla" → "Kerala", "banglore" → "Bangalore", "ward 200" → "Ward200"
+   - ONLY fuzzy-match against values that EXIST in the form. NEVER invent new values
 
-6. NO GUESSING / NO DEFAULTS:
+6. MULTI-VALUE EXTRACTION:
+   - User may provide multiple values in one message
+   - Extract ALL recognizable values, each to its correct field
+   - Example: "adhi 20 india" → name + age + country
+   - Example: "adhi@g.com 9876543210" → email + phone
+
+7. NO GUESSING / NO HALLUCINATION:
    - NEVER infer or generate values the user did not say
-   - NEVER auto-correct or transform unrelated inputs
+   - NEVER convert unrelated text to numbers
+   - "adhi" CANNOT become age=18
 
-7. INVALID OR IRRELEVANT INPUT:
-   - If value does not match ANY field → return: {"_uncertain": true}
+8. UNCERTAINTY (STRICT):
+   - Return "_uncertain": true ONLY when ZERO fields match
+   - If at least ONE field was extracted → return that field WITHOUT _uncertain
+   - NEVER return _uncertain alongside extracted fields
 
-8. PARTIAL EXTRACTION:
-   - Extract valid fields even if some parts are invalid
-   - Example: "adhi 25 india" → extract name, age, country separately
-   - If CURRENTLY ASKING field not answered but OTHER field matched → return that field WITHOUT _uncertain
-
-   
 9. UPDATE INTENT:
-   - User changes existing value (e.g., "change age to 30") → include "_intent": "update"
+   - User changes existing value (e.g., "change age to 30") → "_intent": "update"
 
 10. DELETE INTENT:
-    - User removes a field (e.g., "delete age", "remove country") → "_delete": ["field_id_1", ...]
-    - Can combine with other operations
+    - User removes a field (e.g., "delete age") → "_delete": ["field_id", ...]
 
 11. QUERY INTENT:
-    - User asks a question about the form/data → "_query": "<question as-is>"
-    - Can combine with other operations
+    - User asks a question → "_query": "<question as-is>"
+    - Can combine with data operations
 
 12. STRICT OUTPUT:
-    - Return ONLY valid mappings, no weak matches
+    - Return ONLY confident mappings
     - For numbers, return actual numbers not strings
+    - Precision > Recall (better to miss than to be wrong)
 
-13. CONFIDENCE RULE:
-    - "_uncertain": true ONLY when NO field matches at all
-    - Precision > Recall
-
-14. SENSITIVE FIELDS:
+13. SENSITIVE FIELDS:
     - Password fields → always return ""
 
 Return ONLY a JSON object. No explanation."""

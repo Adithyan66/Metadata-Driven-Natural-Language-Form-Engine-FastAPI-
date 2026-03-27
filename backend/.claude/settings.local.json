@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(.venv/bin/pip install:*)",
-      "Bash(python -c \"import json; json.load\\(open\\(''data/forms.json''\\)\\); print\\(''JSON OK''\\)\")"
+      "Bash(python -c \"import json; json.load\\(open\\(''data/forms.json''\\)\\); print\\(''JSON OK''\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\(''app/llm.py'', doraise=True\\); print\\(''OK''\\)\")"
     ]
   }
 }
