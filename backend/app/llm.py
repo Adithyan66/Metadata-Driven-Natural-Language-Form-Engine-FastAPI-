@@ -177,9 +177,15 @@ QUESTION_RULES = """YOUR RESPONSE MUST FOLLOW THIS STRUCTURE:
    - Briefly confirm what was just saved/updated/inferred/deleted
    - Warm tone: "Great!", "Perfect!", "Got it!", "Noted!"
    - ONE short sentence max
-   - If user skipped the asked question, gently remind them
 
-2. ASK THE NEXT QUESTION:
+2. REJECTED VALUES (MANDATORY — do NOT skip this):
+   - If LAST ACTION contains any REJECTED items, you MUST mention them
+   - Explain briefly why each was rejected
+   - Show valid alternatives if provided
+   - Example: "However, Ward2 isn't available for Alappuzha — you can choose from Ward1 or Ward6."
+   - NEVER silently skip rejected values
+
+3. ASK THE NEXT QUESTION:
    - Ask for ONE field only
    - Be natural and conversational
    - For dropdowns: list options in a friendly way
@@ -187,7 +193,7 @@ QUESTION_RULES = """YOUR RESPONSE MUST FOLLOW THIS STRUCTURE:
 
 FORMATTING:
 - Line break between acknowledgment and question
-- Max 3 sentences total
+- Max 4 sentences total
 - No bullet points, no raw field names
 - Sound human, not robotic
 
@@ -249,6 +255,14 @@ def call_openai_next_question(form, collected_data, missing_fields, last_action=
         if deleted:
             items = ", ".join(deleted)
             parts.append(f"User deleted: {items}. Confirm deletion briefly.")
+
+        rejected = last_action.get("rejected", [])
+        if rejected:
+            for r in rejected:
+                parts.append(
+                    f"REJECTED: User tried to set {r['field']}='{r['value']}' but it was rejected: {r['reason']}. "
+                    f"Briefly acknowledge this and explain why."
+                )
 
         unanswered = last_action.get("unanswered_field")
         if unanswered:
@@ -451,11 +465,26 @@ def call_openai_answer_query(query, form, collected_data):
     fields_context = _build_fields_context(form, collected_data)
     form_prompt = _get_form_prompt(form)
 
-    # Include full dropdown hierarchy for accurate answers
-    hierarchy_info = []
+    # Pre-compute valid options for ALL option-based fields given current collected_data
+    # This is the SOURCE OF TRUTH — the LLM must use these, not traverse the hierarchy itself
+    computed_options = []
     for f in form["fields"]:
-        if f.get("dropdown_options"):
-            hierarchy_info.append(f"- {f['field_id']}: options={json.dumps(f['dropdown_options'])}")
+        if has_options(f):
+            fid = f["field_id"]
+            label = f.get("label", fid)
+            valid_opts = get_valid_dropdown_values(form, fid, collected_data)
+            if valid_opts is None:
+                computed_options.append(f"- {label}: cannot determine yet (parent not selected)")
+            elif len(valid_opts) == 0:
+                parent_fid = f.get("parent_field_id")
+                if parent_fid and parent_fid in collected_data:
+                    parent_field = get_field(form, parent_fid)
+                    parent_label = parent_field["label"] if parent_field else parent_fid
+                    computed_options.append(f"- {label}: NONE available under {parent_label}='{collected_data[parent_fid]}'")
+                else:
+                    computed_options.append(f"- {label}: no options available")
+            else:
+                computed_options.append(f"- {label}: {', '.join(valid_opts)}")
 
     system_prompt = f"""You are a helpful form assistant answering a user's question.
 
@@ -465,26 +494,24 @@ Form: {form['title']}
 Fields:
 {fields_context}
 
-Full dropdown hierarchy:
-{chr(10).join(hierarchy_info) if hierarchy_info else "None"}
+AVAILABLE OPTIONS (pre-computed based on current selections — this is the SOURCE OF TRUTH):
+{chr(10).join(computed_options) if computed_options else "None"}
 
 Currently collected data: {json.dumps(collected_data)}
 
 RULES:
-1. Answer ONLY based on form metadata and collected data above.
-2. If question is about options/choices:
-   - Check if parent field is already selected → show only relevant children
-   - If no parent selected → show all available
+1. Answer ONLY based on the AVAILABLE OPTIONS and collected data above.
+2. For questions about choices/options:
+   - Use ONLY the pre-computed AVAILABLE OPTIONS above
+   - If it says "NONE available" → tell the user there are no options for that field
+   - Do NOT traverse or guess from any other data
 3. If question is about collected data → format as a nice summary.
 4. Keep answer concise, friendly, accurate.
-5. Do NOT make up data — always depend on given data, not from outside.
+5. Do NOT make up data.
 6. LANGUAGE (CRITICAL):
-   - NEVER use technical/internal terms like "dropdown", "options", "valid_options", "field_id", "hierarchy", "metadata"
-   - Speak naturally as if talking to a real person
-   - Say "available choices" or "you can choose from" — NOT "dropdown options"
-   - Say "under Tokyo" — NOT "part of the Tokyo district in the dropdown"
-   - Example BAD: "In the dropdown options, there are 2 wards: Ward1 and Ward2"
-   - Example GOOD: "Under Tokyo, you can choose between Ward1 and Ward2"
+   - NEVER use technical terms like "dropdown", "field_id", "valid_options", "hierarchy", "metadata", "pre-computed"
+   - Speak naturally: "you can choose from" / "there are no wards available for Chennai"
+   - Sound like a real person
 
 Return ONLY the answer text."""
 

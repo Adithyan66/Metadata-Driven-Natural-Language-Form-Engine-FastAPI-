@@ -202,7 +202,25 @@ def sanitize(state: FormState) -> dict:
                     dropped.append({"field": label, "value": val, "reason": reason})
                     continue
             else:
-                sanitized[fid] = val
+                # valid_opts is empty or None
+                if valid_opts is not None and len(valid_opts) == 0:
+                    # Empty list = no options exist for current selection
+                    parent_fid = field_def.get("parent_field_id")
+                    if parent_fid and parent_fid in collected_data:
+                        parent_field = get_field(form, parent_fid)
+                        parent_label = parent_field["label"] if parent_field else parent_fid
+                        parent_val = collected_data[parent_fid]
+                        reason = (
+                            f"{label} is not applicable for your current {parent_label} '{parent_val}'. "
+                            f"There are no {label.lower()} options available under '{parent_val}'."
+                        )
+                    else:
+                        reason = f"No {label.lower()} options are available for your current selections."
+                    dropped.append({"field": label, "value": val, "reason": reason})
+                    continue
+                else:
+                    # None = can't determine options yet (parent not set), accept for now
+                    sanitized[fid] = val
 
         else:
             if val_str in user_msg_lower:
@@ -423,6 +441,9 @@ def handle_conflicts(state: FormState) -> dict:
         last_action["inferred"] = inferred_clean
     if deleted_labels:
         last_action["deleted"] = deleted_labels
+    dropped_fields = state.get("dropped_fields", [])
+    if dropped_fields:
+        last_action["rejected"] = dropped_fields
 
     error_msg = call_openai_error_message(form, all_errors, state["user_message"], collected_data)
     if missing:
@@ -479,6 +500,11 @@ def commit(state: FormState) -> dict:
         last_action["deleted"] = deleted_labels
     if currently_asking and currently_asking in missing and extracted:
         last_action["unanswered_field"] = currently_asking
+
+    # Include dropped fields so LLM can acknowledge rejected values
+    dropped_fields = state.get("dropped_fields", [])
+    if dropped_fields:
+        last_action["rejected"] = dropped_fields
 
     response_msg = _with_query(query_answer, call_openai_next_question(form, collected_data, missing, last_action=last_action))
 
