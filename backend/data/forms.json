@@ -2,7 +2,7 @@
   {
     "form_id": "bank_opening_form",
     "title": "Bank Account Opening Form",
-    "system_prompt": "ABOUT THIS FORM: Bank account opening form collecting personal details and address.\n\nFIELD GUIDE:\n- full_name: User's full legal name (text)\n- age: Numeric age. Country-dependent minimums: India 18+, China 16+, Japan 15+\n- email: Must be valid email format\n- phone: 7-15 digits, optional + prefix\n- country: Top of location hierarchy. Options: India, Japan, China\n- state: Child of country. Depends on which country is selected\n- district: Child of state. Depends on which state is selected\n- ward: Child of district. Values follow pattern Ward + Number (Ward1, Ward6, Ward100, Ward200)\n- account_type: Savings, Current, or Fixed Deposit\n- pincode: Only active when country=India. Must be exactly 6 digits\n- password: Must meet security requirements from validation rules\n\nLOCATION HIERARCHY: country → state → district → ward (each level narrows the next)\n\nFUZZY MATCHING RULES:\n1. WARD PATTERN: Any input like 'ward200', 'ward 200', 'my ward is 200', 'wars 200', 'wrd200' → normalize to 'Ward200' and map to ward field\n2. LOCATION NAMES: Approximate matches for known locations — 'kerla'→'Kerala', 'banglore'→'Bangalore', 'chenai'→'Chennai', 'alapuzha'→'Alappuzha', 'shenzn'→'Shenzhen'\n3. COUNTRY NAMES: 'india'→'India', 'japan'→'Japan', 'china'→'China' (case-insensitive)\n4. MIXED INPUT: User may provide multiple values at once — 'adhi 20 india' → full_name='adhi', age=20, country='India'. Extract ALL recognizable values\n5. MISPLACED ANSWERS: If currently asking for one field but user answers a different one — DO NOT reject. Map to the correct field based on semantic match. Example: asking for name, user says 'india' → map to country\n6. NUMERIC SUFFIX: 'ward' + any number → try matching against valid ward options. 'ward 6'→'Ward6', 'ward100'→'Ward100'\n7. SOFT CORRECTION: Fix typos and casing for known values, but NEVER invent values that don't exist in the form\n\nEXAMPLES:\n- Input: 'wars 200' → {\"ward\": \"Ward200\"}\n- Input: 'kerla' → {\"state\": \"Kerala\"}\n- Input: 'india' (when asking age) → {\"country\": \"India\"}\n- Input: 'adhi 20 india' → {\"full_name\": \"adhi\", \"age\": 20, \"country\": \"India\"}\n- Input: 'change district to chennai' → {\"_intent\": \"update\", \"district\": \"Chennai\"}\n- Input: 'ward 1' → {\"ward\": \"Ward1\"}\n- Input: 'alapuzha' → {\"district\": \"Alappuzha\"}\n\nTONE: Formal but friendly banking professional.",
+    "system_prompt": "ABOUT THIS FORM: Bank account opening form collecting personal details and address.\n\nFIELD GUIDE:\n- full_name: User's full legal name (text)\n- age: Numeric age. Country-dependent minimums: India 18+, China 16+, Japan 15+\n- email: Must be valid email format\n- phone: 7-15 digits only strictly no prefix +  ,\n- country: Top of location hierarchy. Options: India, Japan, China\n- state: Child of country. Depends on which country is selected\n- district: Child of state. Depends on which state is selected\n- ward: Child of district. Values follow pattern Ward + Number (Ward1, Ward6, Ward100, Ward200)\n- account_type: Savings, Current, or Fixed Deposit\n- pincode: Only active when country=India. Must be exactly 6 digits\n- password: Must meet security requirements from validation rules\n\nLOCATION HIERARCHY: country → state → district → ward (each level narrows the next)\n\nFUZZY MATCHING RULES:\n1. WARD PATTERN: Any input like 'ward200', 'ward 200', 'my ward is 200', 'wars 200', 'wrd200' → normalize to 'Ward200' and map to ward field\n2. LOCATION NAMES: Approximate matches for known locations — 'kerla'→'Kerala', 'banglore'→'Bangalore', 'chenai'→'Chennai', 'alapuzha'→'Alappuzha', 'shenzn'→'Shenzhen'\n3. COUNTRY NAMES: 'india'→'India', 'japan'→'Japan', 'china'→'China' (case-insensitive)\n4. MIXED INPUT: User may provide multiple values at once — 'adhi 20 india' → full_name='adhi', age=20, country='India'. Extract ALL recognizable values\n5. MISPLACED ANSWERS: If currently asking for one field but user answers a different one — DO NOT reject. Map to the correct field based on semantic match. Example: asking for name, user says 'india' → map to country\n6. NUMERIC SUFFIX: 'ward' + any number → try matching against valid ward options. 'ward 6'→'Ward6', 'ward100'→'Ward100'\n7. SOFT CORRECTION: Fix typos and casing for known values, but NEVER invent values that don't exist in the form\n\nEXAMPLES:\n- Input: 'wars 200' → {\"ward\": \"Ward200\"}\n- Input: 'kerla' → {\"state\": \"Kerala\"}\n- Input: 'india' (when asking age) → {\"country\": \"India\"}\n- Input: 'adhi 20 india' → {\"full_name\": \"adhi\", \"age\": 20, \"country\": \"India\"}\n- Input: 'change district to chennai' → {\"_intent\": \"update\", \"district\": \"Chennai\"}\n- Input: 'ward 1' → {\"ward\": \"Ward1\"}\n- Input: 'alapuzha' → {\"district\": \"Alappuzha\"}\n\nTONE: Formal but friendly banking professional.",
     "fields": [
       {
         "field_id": "full_name",
@@ -69,8 +69,8 @@
         "type": "text",
         "required": true,
         "validation_rules": {
-          "regex": "^\\+?[0-9]{7,15}$",
-          "regex_description": "a valid phone number (7-15 digits, optional + prefix)"
+          "regex": "^\\[0-9]{7,15}$",
+          "regex_description": "a valid phone number (7-15 digits)"
         }
       },
       {
@@ -158,7 +158,7 @@
               "field_id": "state",
               "options": [
                 {
-                  "value": "Kerala",
+                  "value": "japanstate",
                   "children": {
                     "field_id": "district",
                     "options": [
@@ -337,169 +337,572 @@
     ]
   },
   {
-  "form_id": "job_application_form",
-  "title": "Job Application Form",
-  "system_prompt": "This is a job application form for a tech company. Roles include Frontend Developer, Backend Developer, DevOps Engineer, and Intern. Each role has experience requirements defined in metadata. Skills are multi-select — users can pick multiple. Preferred location can be Remote, India (with city options), or USA (with city options). City is only asked when location is not Remote. Interns have a salary cap of $2000. Frontend Developers must provide a portfolio URL. Use a casual, encouraging startup tone.",
-  "fields": [
-    {
-      "field_id": "full_name",
-      "label": "Full Name",
-      "type": "text",
-      "required": true,
-      "validation_rules": {
-        "min_length": 3,
-        "max_length": 80
-      }
-    },
-    {
-      "field_id": "experience",
-      "label": "Years of Experience",
-      "type": "number",
-      "required": true,
-      "validation_rules": {
-        "min": 0,
-        "max": 50
-      }
-    },
-    {
-      "field_id": "job_role",
-      "label": "Job Role",
-      "type": "dropdown",
-      "required": true,
-      "dropdown_options": [
-        {
-          "value": "Frontend Developer",
-          "meta": {
-            "min_experience": 1
-          }
-        },
-        {
-          "value": "Backend Developer",
-          "meta": {
-            "min_experience": 2
-          }
-        },
-        {
-          "value": "DevOps Engineer",
-          "meta": {
-            "min_experience": 3
-          }
-        },
-        {
-          "value": "Intern",
-          "meta": {
-            "max_experience": 1
-          }
+    "form_id": "job_application_form",
+    "title": "Job Application Form",
+    "system_prompt": "This is a job application form for a tech company. Roles include Frontend Developer, Backend Developer, DevOps Engineer, and Intern. Each role has experience requirements defined in metadata. Skills are multi-select — users can pick multiple. Preferred location can be Remote, India (with city options), or USA (with city options). City is only asked when location is not Remote. Interns have a salary cap of $2000. Frontend Developers must provide a portfolio URL. Use a casual, encouraging startup tone.",
+    "fields": [
+      {
+        "field_id": "full_name",
+        "label": "Full Name",
+        "type": "text",
+        "required": true,
+        "validation_rules": {
+          "min_length": 3,
+          "max_length": 80
         }
-      ]
-    },
-    {
-      "field_id": "preferred_location",
-      "label": "Preferred Work Location",
-      "type": "dropdown",
-      "required": true,
-      "dropdown_options": [
-        {
-          "value": "Remote"
-        },
-        {
-          "value": "India",
-          "children": {
-            "field_id": "city",
-            "options": [
-              { "value": "Bangalore" },
-              { "value": "Hyderabad" },
-              { "value": "Kochi" }
-            ]
-          }
-        },
-        {
-          "value": "USA",
-          "children": {
-            "field_id": "city",
-            "options": [
-              { "value": "New York" },
-              { "value": "San Francisco" }
-            ]
-          }
+      },
+      {
+        "field_id": "experience",
+        "label": "Years of Experience",
+        "type": "number",
+        "required": true,
+        "validation_rules": {
+          "min": 0,
+          "max": 50
         }
-      ]
-    },
-    {
-      "field_id": "city",
-      "label": "City",
-      "type": "dropdown",
-      "required": false,
-      "active": false,
-      "parent_field_id": "preferred_location",
-      "dropdown_options": [],
-      "conditional_rules": [
-        {
-          "if": {
-            "field": "preferred_location",
-            "operator": "not_equals",
+      },
+      {
+        "field_id": "job_role",
+        "label": "Job Role",
+        "type": "dropdown",
+        "required": true,
+        "dropdown_options": [
+          {
+            "value": "Frontend Developer",
+            "meta": {
+              "min_experience": 1
+            }
+          },
+          {
+            "value": "Backend Developer",
+            "meta": {
+              "min_experience": 2
+            }
+          },
+          {
+            "value": "DevOps Engineer",
+            "meta": {
+              "min_experience": 3
+            }
+          },
+          {
+            "value": "Intern",
+            "meta": {
+              "max_experience": 1
+            }
+          }
+        ]
+      },
+      {
+        "field_id": "preferred_location",
+        "label": "Preferred Work Location",
+        "type": "dropdown",
+        "required": true,
+        "dropdown_options": [
+          {
             "value": "Remote"
           },
-          "then": {
-            "active": true,
-            "required": true
-          }
-        }
-      ]
-    },
-    {
-      "field_id": "expected_salary",
-      "label": "Expected Salary (USD)",
-      "type": "number",
-      "required": true,
-      "validation_rules": {
-        "min": 1000,
-        "max": 1000000
-      },
-      "conditional_rules": [
-        {
-          "if": {
-            "field": "job_role",
-            "equals": "Intern"
+          {
+            "value": "India",
+            "children": {
+              "field_id": "city",
+              "options": [
+                {
+                  "value": "Bangalore"
+                },
+                {
+                  "value": "Hyderabad"
+                },
+                {
+                  "value": "Kochi"
+                }
+              ]
+            }
           },
-          "then": {
-            "max": 2000
+          {
+            "value": "USA",
+            "children": {
+              "field_id": "city",
+              "options": [
+                {
+                  "value": "New York"
+                },
+                {
+                  "value": "San Francisco"
+                }
+              ]
+            }
           }
+        ]
+      },
+      {
+        "field_id": "city",
+        "label": "City",
+        "type": "dropdown",
+        "required": false,
+        "active": false,
+        "parent_field_id": "preferred_location",
+        "dropdown_options": [],
+        "conditional_rules": [
+          {
+            "if": {
+              "field": "preferred_location",
+              "operator": "not_equals",
+              "value": "Remote"
+            },
+            "then": {
+              "active": true,
+              "required": true
+            }
+          }
+        ]
+      },
+      {
+        "field_id": "expected_salary",
+        "label": "Expected Salary (USD)",
+        "type": "number",
+        "required": true,
+        "validation_rules": {
+          "min": 1000,
+          "max": 1000000
+        },
+        "conditional_rules": [
+          {
+            "if": {
+              "field": "job_role",
+              "equals": "Intern"
+            },
+            "then": {
+              "max": 2000
+            }
+          }
+        ]
+      },
+      {
+        "field_id": "availability",
+        "label": "Availability",
+        "type": "dropdown",
+        "required": true,
+        "dropdown_options": [
+          {
+            "value": "Immediate"
+          },
+          {
+            "value": "15 Days"
+          },
+          {
+            "value": "30 Days"
+          }
+        ]
+      },
+      {
+        "field_id": "portfolio_url",
+        "label": "Portfolio URL",
+        "type": "text",
+        "required": false,
+        "validation_rules": {
+          "regex": "^(https?:\\/\\/)?([\\w.-]+)\\.([a-z\\.]{2,6})([\\/\\w .-]*)*\\/?$",
+          "regex_description": "a valid URL"
+        },
+        "conditional_rules": [
+          {
+            "if": {
+              "field": "job_role",
+              "equals": "Frontend Developer"
+            },
+            "then": {
+              "required": true
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "form_id": "job_application_form",
+    "title": "Job Application Form",
+    "system_prompt": "ABOUT THIS FORM: Job application form collecting candidate details, experience, and preferences.\n\nFIELD GUIDE:\n- candidate_name: Full name of applicant\n- dob: Date of birth in YYYY-MM-DD format\n- email: Valid email format\n- phone: 7-15 digits, optional + prefix\n- experience_years: Total years of experience\n- skills: Comma-separated skills\n- highest_qualification: Degree or certification\n- job_role: Desired role\n- preferred_location: Country → State → City hierarchy\n- expected_salary: Monthly salary expectation in USD\n- availability: Immediate, 15 Days, 30 Days, 60 Days\n- resume_link: URL to resume\n\nFUZZY MATCHING RULES:\n1. ROLE MATCHING: 'backend dev', 'backend developer' → 'Backend Engineer'\n2. LOCATION FIX: 'banglore' → 'Bangalore', 'delhii' → 'Delhi'\n3. EXPERIENCE EXTRACTION: '5 years exp' → experience_years=5\n4. MIXED INPUT: 'john 5 years india backend' → extract all relevant fields\n5. MISPLACED INPUT: Map semantically instead of rejecting\n\nTONE: Professional HR assistant.",
+    "fields": [
+      {
+        "field_id": "candidate_name",
+        "label": "Candidate Name",
+        "type": "text",
+        "required": true,
+        "validation_rules": {
+          "min_length": 2,
+          "max_length": 100
         }
-      ]
-    },
+      },
+      {
+        "field_id": "dob",
+        "label": "Date of Birth",
+        "type": "text",
+        "required": true,
+        "validation_rules": {
+          "regex": "^\\d{4}-\\d{2}-\\d{2}$",
+          "regex_description": "YYYY-MM-DD format"
+        }
+      },
+      {
+        "field_id": "email",
+        "label": "Email",
+        "type": "text",
+        "required": true,
+        "validation_rules": {
+          "regex": "^[\\w.-]+@[\\w.-]+\\.\\w{2,}$"
+        }
+      },
+      {
+        "field_id": "phone",
+        "label": "Phone",
+        "type": "text",
+        "required": true,
+        "validation_rules": {
+          "regex": "^\\+?[0-9]{7,15}$"
+        }
+      },
+      {
+        "field_id": "experience_years",
+        "label": "Experience (Years)",
+        "type": "number",
+        "required": true,
+        "validation_rules": {
+          "min": 0,
+          "max": 40
+        }
+      },
+      {
+        "field_id": "skills",
+        "label": "Skills",
+        "type": "text",
+        "required": true
+      },
+      {
+        "field_id": "highest_qualification",
+        "label": "Highest Qualification",
+        "type": "dropdown",
+        "required": true,
+        "dropdown_options": [
+          {
+            "value": "Diploma"
+          },
+          {
+            "value": "Bachelor's"
+          },
+          {
+            "value": "Master's"
+          },
+          {
+            "value": "PhD"
+          }
+        ]
+      },
+      {
+        "field_id": "job_role",
+        "label": "Job Role",
+        "type": "dropdown",
+        "required": true,
+        "dropdown_options": [
+          {
+            "value": "Backend Engineer"
+          },
+          {
+            "value": "Frontend Engineer"
+          },
+          {
+            "value": "DevOps Engineer"
+          },
+          {
+            "value": "Data Engineer"
+          }
+        ]
+      },
+      {
+        "field_id": "preferred_location",
+        "label": "Preferred Location",
+        "type": "dropdown",
+        "required": true,
+        "dropdown_options": [
+          {
+            "value": "India",
+            "children": {
+              "field_id": "state",
+              "options": [
+                {
+                  "value": "Karnataka",
+                  "children": {
+                    "field_id": "city",
+                    "options": [
+                      {
+                        "value": "Bangalore"
+                      },
+                      {
+                        "value": "Mysore"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "value": "Kerala",
+                  "children": {
+                    "field_id": "city",
+                    "options": [
+                      {
+                        "value": "Kochi"
+                      },
+                      {
+                        "value": "Trivandrum"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "value": "USA",
+            "children": {
+              "field_id": "state",
+              "options": [
+                {
+                  "value": "California",
+                  "children": {
+                    "field_id": "city",
+                    "options": [
+                      {
+                        "value": "San Francisco"
+                      },
+                      {
+                        "value": "Los Angeles"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "field_id": "expected_salary",
+        "label": "Expected Salary (USD/month)",
+        "type": "number",
+        "required": true,
+        "validation_rules": {
+          "min": 100,
+          "max": 50000
+        }
+      },
+      {
+        "field_id": "availability",
+        "label": "Availability",
+        "type": "dropdown",
+        "required": true,
+        "dropdown_options": [
+          {
+            "value": "Immediate"
+          },
+          {
+            "value": "15 Days"
+          },
+          {
+            "value": "30 Days"
+          },
+          {
+            "value": "60 Days"
+          }
+        ]
+      },
+      {
+        "field_id": "resume_link",
+        "label": "Resume Link",
+        "type": "text",
+        "required": true,
+        "validation_rules": {
+          "regex": "^(https?:\\/\\/).+",
+          "regex_description": "valid URL"
+        }
+      }
+    ]
+  },
+  {
+  "form_id": "enterprise_onboarding_form",
+  "title": "Enterprise Business & Compliance Onboarding",
+
+  "system_prompt": "ABOUT THIS FORM: Enterprise onboarding form for companies including KYC, compliance, ownership structure, and financial profiling.\n\nFIELD GUIDE:\n- entity_type: Individual, Startup, SME, Enterprise\n- business_name: Legal entity name\n- registration_number: Government issued registration\n- incorporation_date: YYYY-MM-DD\n- country/state/city: Hierarchical location\n- directors: Dynamic list of directors\n- shareholders: Dynamic ownership structure\n- kyc_documents: Required based on entity_type\n- bank_details: Nested banking information\n- risk_profile: Auto-derived from inputs\n\nFUZZY RULES:\n1. 'pvt ltd', 'private limited' → normalize to 'Private Limited'\n2. Mixed input allowed → extract multiple values\n3. 'add director john 40 india' → dynamic insertion into directors[]\n4. Ownership parsing → 'john 60%, alice 40%' → shareholders array\n5. Misplaced inputs → map semantically\n\nTONE: Strict compliance officer tone.",
+
+  "fields": [
+
     {
-      "field_id": "availability",
-      "label": "Availability",
+      "field_id": "entity_type",
+      "label": "Entity Type",
       "type": "dropdown",
       "required": true,
       "dropdown_options": [
-        { "value": "Immediate" },
-        { "value": "15 Days" },
-        { "value": "30 Days" }
+        { "value": "Individual" },
+        { "value": "Startup" },
+        { "value": "SME" },
+        { "value": "Enterprise" }
       ]
     },
+
     {
-      "field_id": "portfolio_url",
-      "label": "Portfolio URL",
+      "field_id": "business_name",
+      "label": "Business Name",
       "type": "text",
-      "required": false,
-      "validation_rules": {
-        "regex": "^(https?:\\/\\/)?([\\w.-]+)\\.([a-z\\.]{2,6})([\\/\\w .-]*)*\\/?$",
-        "regex_description": "a valid URL"
-      },
-      "conditional_rules": [
+      "required": true
+    },
+
+    {
+      "field_id": "registration_number",
+      "label": "Registration Number",
+      "type": "text",
+      "required": true
+    },
+
+    {
+      "field_id": "business_type",
+      "label": "Business Type",
+      "type": "dropdown",
+      "required": true,
+      "dropdown_options": [
+        { "value": "Private Limited" },
+        { "value": "Public Limited" },
+        { "value": "Partnership" },
+        { "value": "Sole Proprietorship" }
+      ]
+    },
+
+    {
+      "field_id": "location",
+      "label": "Registered Location",
+      "type": "group",
+      "fields": [
         {
-          "if": {
-            "field": "job_role",
-            "equals": "Frontend Developer"
-          },
-          "then": {
-            "required": true
-          }
+          "field_id": "country",
+          "type": "dropdown",
+          "required": true,
+          "dropdown_options": [
+            {
+              "value": "India",
+              "children": {
+                "field_id": "state",
+                "options": [
+                  {
+                    "value": "Kerala",
+                    "children": {
+                      "field_id": "city",
+                      "options": [
+                        { "value": "Kochi" },
+                        { "value": "Trivandrum" }
+                      ]
+                    }
+                  },
+                  {
+                    "value": "Karnataka",
+                    "children": {
+                      "field_id": "city",
+                      "options": [
+                        { "value": "Bangalore" }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "value": "USA",
+              "children": {
+                "field_id": "state",
+                "options": [
+                  {
+                    "value": "California",
+                    "children": {
+                      "field_id": "city",
+                      "options": [
+                        { "value": "San Francisco" }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
         }
       ]
+    },
+
+
+    {
+      "field_id": "bank_details",
+      "label": "Bank Details",
+      "type": "group",
+      "fields": [
+        {
+          "field_id": "account_number",
+          "type": "text",
+          "required": true
+        },
+        {
+          "field_id": "ifsc_code",
+          "type": "text",
+          "required": true,
+          "validation_rules": {
+            "regex": "^[A-Z]{4}0[A-Z0-9]{6}$"
+          }
+        },
+        {
+          "field_id": "swift_code",
+          "type": "text",
+          "required": false
+        }
+      ]
+    },
+
+    {
+      "field_id": "kyc_documents",
+      "label": "KYC Documents",
+      "type": "array",
+      "required": true,
+      "fields": [
+        {
+          "field_id": "doc_type",
+          "type": "dropdown",
+          "dropdown_options": [
+            { "value": "PAN" },
+            { "value": "Aadhar" },
+            { "value": "Passport" },
+            { "value": "Certificate of Incorporation" }
+          ]
+        },
+        {
+          "field_id": "doc_number",
+          "type": "text"
+        }
+      ]
+    },
+
+    {
+      "field_id": "annual_revenue",
+      "label": "Annual Revenue (USD)",
+      "type": "number",
+      "required": true
+    },
+
+    {
+      "field_id": "risk_profile",
+      "label": "Risk Profile",
+      "type": "computed",
+      "formula": "IF(annual_revenue > 10000000 OR any(directors.is_pep == true), 'HIGH', 'LOW')"
+    },
+
+    {
+      "field_id": "compliance_flags",
+      "label": "Compliance Flags",
+      "type": "computed",
+      "formula": "IF(sum(shareholders.ownership_percentage) != 100, 'INVALID_OWNERSHIP', 'OK')"
     }
+
   ]
 }
 ]

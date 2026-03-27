@@ -131,6 +131,7 @@ def call_openai_extract(user_message, form, collected_data, currently_asking=Non
     """Extract field values from user message."""
     fields_context = _build_fields_context(form, collected_data)
     form_prompt = _get_form_prompt(form)
+    
 
     asking_context = ""
     if currently_asking and currently_asking_field:
@@ -287,10 +288,37 @@ Return ONLY the message text."""
 # === Error Message ===
 
 def call_openai_error_message(form, field_errors, user_message, collected_data):
-    """Generate a user-friendly error message."""
+    """Generate a user-friendly error message with proper context per error type."""
     form_prompt = _get_form_prompt(form)
 
-    system_prompt = f"""You are a helpful form assistant. The user provided data that failed validation.
+    # Enrich errors with field labels and valid options for better LLM context
+    enriched_errors = []
+    for err in field_errors:
+        enriched = dict(err)
+        fid = err.get("field_id", "")
+
+        # Add field label
+        field = get_field(form, fid) if fid and fid != "hierarchy" else None
+        if field:
+            enriched["field_label"] = field.get("label", fid)
+
+            # Add valid options if it's an options field
+            if has_options(field):
+                valid_opts = get_valid_dropdown_values(form, fid, collected_data)
+                if valid_opts:
+                    enriched["valid_options"] = valid_opts
+
+            # Add parent info for hierarchy fields
+            if field.get("parent_field_id"):
+                parent = get_field(form, field["parent_field_id"])
+                parent_val = collected_data.get(field["parent_field_id"])
+                if parent and parent_val:
+                    enriched["parent_field"] = parent.get("label", field["parent_field_id"])
+                    enriched["parent_value"] = parent_val
+
+        enriched_errors.append(enriched)
+
+    system_prompt = f"""You are a warm, helpful form assistant. The user provided data that was rejected.
 
 Form: {form['title']}
 {f"FORM CONTEXT: {form_prompt}" if form_prompt else ""}
@@ -298,10 +326,38 @@ Form: {form['title']}
 Already collected: {json.dumps(collected_data)}
 User said: "{user_message}"
 
-Validation errors:
-{json.dumps(field_errors, indent=2)}
+Rejected fields with details:
+{json.dumps(enriched_errors, indent=2)}
 
-Generate a clear, friendly message explaining what went wrong and how to fix it. Be concise."""
+GENERATE A RESPONSE following these rules:
+
+1. ACKNOWLEDGE the user's intent first ("I see you're trying to set...")
+2. EXPLAIN the rejection based on error type:
+
+   A. HIERARCHY CONFLICT (error mentions "does not belong to"):
+      - Explain that the value doesn't match their current parent selection
+      - Use the parent_field and parent_value to explain: "Since you selected [parent], the available [child] options are: [list]"
+      - Show valid_options if provided
+
+   B. FORMAT / VALIDATION ERROR (error mentions "must be", "must contain"):
+      - State the requirement clearly using the error message
+      - Give a hint: "Please provide a value that meets: [requirement]"
+
+   C. CONDITIONAL RULE VIOLATION (error mentions "due to"):
+      - Explain the dependency: "Because you selected [trigger], [field] needs to be [requirement]"
+
+   D. DUPLICATE WITHOUT UPDATE (error mentions "already provided"):
+      - Tell user how to update: "say 'change [field] to [value]'"
+
+3. If valid_options are listed in the error → mention them naturally
+4. Keep it concise — max 3 sentences per error
+5. If multiple errors, address each briefly
+
+LANGUAGE (CRITICAL):
+- NEVER say "dropdown", "field_id", "valid_options", "hierarchy", "metadata", "parent_field_id"
+- Use field labels only (e.g., "Country", "District" — not "country", "district")
+- Sound like a real person helping, not a system error
+- Be encouraging, not blaming"""
 
     response = _get_client().chat.completions.create(
         model="gpt-4o-mini",

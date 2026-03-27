@@ -1,87 +1,15 @@
 [
   {
     "role": "assistant",
-    "content": "Got it! \n\nNow, could you please provide your full legal name?"
+    "content": "Got it! We're ready to proceed with your bank account opening.\n\nCould you please share your full legal name?"
   },
   {
     "role": "user",
-    "content": "adhi 15"
+    "content": "adhi 27 adhi@gsus.did 8585658565 alappuzha"
   },
   {
     "role": "assistant",
-    "content": "Got it! Your full name and age have been saved.\n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "india"
-  },
-  {
-    "role": "assistant",
-    "content": "Thank you for your response, Adhi. It appears that the age you provided is 15, which does not meet the minimum requirement of 18 years for opening a bank account in India. \n\nPlease let us know if you have a different age to provide, or if you would like to explore options available for minors. We're here to assist you!\n\nGreat! I've noted your name and age.\n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "japan"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! You've chosen Japan as your country.\n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "change age to 18"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! Your age has been updated to 18. \n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "chnage country to india"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! You've selected India as your country.\n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "chnage age to 15"
-  },
-  {
-    "role": "assistant",
-    "content": "Thank you for your input, Adhi. However, I noticed that the age you provided, 15, does not meet the minimum requirement for opening a bank account in India, which is 18 years. Please provide an age of 18 or older to proceed with your application. If you have any further questions, feel free to ask!\n\nGot it! I have your full name, age, and country saved.\n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "delete country"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! You've deleted the country.\n\nWhat is your email address?"
-  },
-  {
-    "role": "user",
-    "content": "india"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! You've chosen India as your country. \n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "remove inda"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! You've deleted the country selection.\n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "give all contry list"
-  },
-  {
-    "role": "assistant",
-    "content": "You can choose from the following countries to open your bank account: India, Japan, and China.\n\nGot it! You've provided your full name as Adhi and your age as 18. \n\nCould you please share your email address?"
+    "content": "I see you're trying to set up your account details. However, the Phone Number you provided must be a valid phone number consisting of 7 to 15 digits only. Please provide a value that meets this requirement.\n\nIf you have any questions or need further assistance, feel free to ask!\n\nNoted! I've saved your full name, age, email, and district, and I've inferred your country as India and state as Kerala.\n\nCould you please provide your phone number? It should be between 7 to 15 digits long without any prefixes."
   },
   {
     "role": "user",
@@ -89,215 +17,7 @@
   },
   {
     "role": "assistant",
-    "content": "Got it! Your ward has been successfully noted as Ward200, and I've auto-filled your country as China, state as Guangdong, and district as Shenzhen.\n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "delete ward"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! I've noted that the ward has been deleted.\n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "chnage country to india"
-  },
-  {
-    "role": "assistant",
-    "content": "I didn't quite catch that. Could you please provide your Email Address?"
-  },
-  {
-    "role": "user",
-    "content": "remove china"
-  },
-  {
-    "role": "assistant",
-    "content": "Noted! The country, state, and district information has been cleared.\n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "my state is kerala"
-  },
-  {
-    "role": "assistant",
-    "content": "Great! I've noted that your state is Kerala. \n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "my country is china"
-  },
-  {
-    "role": "assistant",
-    "content": "I didn't quite catch that. Could you please provide your Email Address?"
-  },
-  {
-    "role": "user",
-    "content": "japan"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! You've selected Japan as your country.\n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "country india"
-  },
-  {
-    "role": "assistant",
-    "content": "It seems there was a misunderstanding regarding the country you provided. You previously selected \"Japan\" as your country. If you would like to change it to \"India,\" please confirm by saying, \"change country to India.\" Thank you!\n\nGot it! Your name, age, and state have been noted. \n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "remove japan"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! You\u2019ve removed the country and state from your details.\n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "kerala"
-  },
-  {
-    "role": "assistant",
-    "content": "Great! I've noted that your state is Kerala. \n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "japan"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! You've chosen Japan as your country. \n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "remove kerala and japan"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! You've successfully deleted the state and country.\n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "tamilnadu"
-  },
-  {
-    "role": "assistant",
-    "content": "Great! I've noted that your state is Tamil Nadu and your country is India. \n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "japan"
-  },
-  {
-    "role": "assistant",
-    "content": "I didn't quite catch that. Could you please provide your Email Address?"
-  },
-  {
-    "role": "user",
-    "content": "remove india"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! You've successfully removed the country and state information. \n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "japan"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! You've chosen Japan as your country.\n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "tamilnd"
-  },
-  {
-    "role": "assistant",
-    "content": "I didn't quite catch that. Could you please provide your Email Address?"
-  },
-  {
-    "role": "user",
-    "content": "thamilnd"
-  },
-  {
-    "role": "assistant",
-    "content": "I didn't quite catch that. Could you please provide your Email Address?"
-  },
-  {
-    "role": "user",
-    "content": "thamilnadu"
-  },
-  {
-    "role": "assistant",
-    "content": "I didn't quite catch that. Could you please provide your Email Address?"
-  },
-  {
-    "role": "user",
-    "content": "state list"
-  },
-  {
-    "role": "assistant",
-    "content": "Since you have selected Japan as your country, you can choose from the following states:\n\n- Kerala\n- Kansai\n\nGreat! I\u2019ve noted your name, age, and country.\n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "give all states"
-  },
-  {
-    "role": "assistant",
-    "content": "Since you have selected Japan as your country, the available states are:\n\n- Kerala\n- Kansai\n\nGot it! Your full name, age, and country have been noted.\n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "serala"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! You've provided your state as Kerala. \n\nCould you please share your email address?"
-  },
-  {
-    "role": "user",
-    "content": "remove kerala"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! The state has been deleted. \n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "state kerala"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! You've chosen the state of Kerala.\n\nCould you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "list all districts"
-  },
-  {
-    "role": "assistant",
-    "content": "Since you have selected Japan and the state of Kerala, the available districts are:\n\n- Tokyo\n- Yokohama\n\nGot it! Your name, age, country, and state have been saved.\n\nNow, could you please provide your email address?"
-  },
-  {
-    "role": "user",
-    "content": "tokyo"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! You've provided Tokyo as your district.\n\nCould you please share your email address?"
-  },
-  {
-    "role": "user",
-    "content": "list all wards"
-  },
-  {
-    "role": "assistant",
-    "content": "Under Tokyo, you can choose between Ward1 and Ward2.\n\nGot it! You've provided your name, age, country, state, and district. \n\nCould you please share your email address?"
+    "content": "Thank you for your input regarding \"ward200.\" However, we are currently looking for your phone number, which should be between 7 to 15 digits long without any prefixes. Please provide your phone number, and I'll be happy to assist you further!"
   },
   {
     "role": "user",
@@ -305,142 +25,142 @@
   },
   {
     "role": "assistant",
-    "content": "Got it! You've provided your ward as Ward2. \n\nCould you please share your email address with me?"
+    "content": "Thank you for your input, but it seems that \"ward2\" doesn't match the expected format for the ward number. Please provide your phone number, which should be between 7 to 15 digits long, and ensure it's free from any prefixes. I'm here to help!"
   },
   {
     "role": "user",
-    "content": "delete tokyo"
+    "content": "delete district"
   },
   {
     "role": "assistant",
-    "content": "Got it! The district and ward have been deleted.\n\nCould you please provide your email address?"
+    "content": "Got it! You've successfully deleted the district information.\n\nCould you please provide your phone number? It should be between 7 to 15 digits long."
   },
   {
     "role": "user",
-    "content": "tamilnadu"
+    "content": "remove the state and country"
   },
   {
     "role": "assistant",
-    "content": "I didn't quite catch that. Could you please provide your Email Address?"
+    "content": "Got it! You've removed the state and country information.\n\nCould you please provide your phone number? It should be between 7 to 15 digits without any prefixes."
   },
   {
     "role": "user",
-    "content": "india"
+    "content": "ward200"
   },
   {
     "role": "assistant",
-    "content": "Thank you for your response. It seems there was an attempt to change the country from 'Japan' to 'India'. If you would like to proceed with this change, please say, \"change country to India.\" Otherwise, if 'Japan' is correct, we can continue with the current information. Let me know how you would like to proceed!\n\nGreat! I've noted your details including your name, age, country, and state.\n\nNow, could you please provide your email address?"
+    "content": "Got it! Your ward has been saved as Ward200, and I've noted that you are in China, specifically in Guangdong, Shenzhen.\n\nCould you please provide your phone number? It should be between 7 to 15 digits without any prefix."
   },
   {
     "role": "user",
-    "content": "list all collected data"
+    "content": "district Shenzhen"
   },
   {
     "role": "assistant",
-    "content": "Here is the summary of the collected data:\n\n- Full Name: adhi\n- Age: 18\n- Country: Japan\n- State: Kerala\n\nIf you need any further information or assistance, feel free to ask!\n\nGot it! I have your name, age, country, and state saved.\n\nNow, could you please provide your email address?"
+    "content": "Got it! You've provided your details, including your name, age, email, ward, country, state, and district. \n\nCould you please share your phone number? It should be between 7 to 15 digits, without any prefixes."
   },
   {
     "role": "user",
-    "content": "chnage country to india"
+    "content": "remove country"
   },
   {
     "role": "assistant",
-    "content": "Got it! You've updated your country to India. \n\nCould you please provide your email address?"
+    "content": "Got it! You've deleted the country, state, district, and ward information.\n\nLet's move on. Could you please provide your phone number?"
   },
   {
     "role": "user",
-    "content": "856578956"
+    "content": "ward200"
   },
   {
     "role": "assistant",
-    "content": "Got it! Your phone number has been saved.\n\nCould you please provide your email address?"
+    "content": "Got it! Your ward has been saved as Ward200, and I\u2019ve filled in your country as China, state as Guangdong, and district as Shenzhen.\n\nNow, could you please provide your phone number? It should be between 7 to 15 digits without any prefixes."
   },
   {
     "role": "user",
-    "content": "857895654"
+    "content": "district Guangzhou"
   },
   {
     "role": "assistant",
-    "content": "It seems you provided a new phone number, \"857895654.\" However, you had already submitted \"856578956.\" If you would like to update your phone number, please say, \"change phone number to 857895654.\" Thank you!\n\nGot it! I've noted your full name, age, country, and phone number. \n\nCould you please provide your email address?"
+    "content": "Thank you for your input regarding the district, but unfortunately, \"Guangzhou\" does not match the current district we have on file, which is \"Shenzhen.\" Could you please provide your phone number? It should be 7 to 15 digits long, with no prefixes."
   },
   {
     "role": "user",
-    "content": "nijfvdidfdn@ijfn"
+    "content": "list districts in Guangdong"
   },
   {
     "role": "assistant",
-    "content": "I didn't quite catch that. Could you please provide your Email Address?"
+    "content": "In Guangdong, you can choose from the following districts:\n\n- Shenzhen\n- Guangzhou\n\nGot it! You've provided your details up to your location in Shenzhen, China.\n\nCould you please share your phone number? It should be between 7 to 15 digits, without any prefix."
   },
   {
     "role": "user",
-    "content": "nijfvdidfdn@ijfn"
+    "content": "why cant set district Guangzhou"
   },
   {
     "role": "assistant",
-    "content": "I didn't quite catch that. Could you please provide your Email Address?"
+    "content": "You cannot set the district to Guangzhou because your selected state is Guangdong, which only allows Shenzhen as the district option. If you would like to change your district, you can only select Shenzhen under Guangdong.\n\nGot it! I've noted your details so far.\n\nCould you please provide your phone number? It should be between 7 to 15 digits long, without any prefixes."
   },
   {
     "role": "user",
-    "content": "nijfvdidfdn@ijfn"
+    "content": "change the state with respect to guangzhou"
   },
   {
     "role": "assistant",
-    "content": "Thank you for providing your email address! However, it seems that the format you entered doesn't match a valid email address. Please make sure it follows the format of something like \"example@domain.com\" and try again."
+    "content": "Noted! Your state has been updated to Guangdong.\n\nCould you please provide your phone number? It should be between 7 to 15 digits, without any prefixes."
   },
   {
     "role": "user",
-    "content": "askcjbakjc"
+    "content": "show me the district under Guangdong"
   },
   {
     "role": "assistant",
-    "content": "Thank you for your response, but it seems that \"askcjbakjc\" doesn't match the format of a valid email address. An email should look something like \"example@domain.com.\" Could you please provide a valid email address?"
+    "content": "Under Guangdong, you can choose from the following districts: Shenzhen and Guangzhou.\n\nGot it! Your details have been noted.\n\nCould you please provide your phone number?"
   },
   {
     "role": "user",
-    "content": "india"
+    "content": "change county to india"
   },
   {
     "role": "assistant",
-    "content": "Got it! Your name, age, country, and phone number have been successfully saved. \n\nCould you please provide your email address?"
+    "content": "I appreciate your input about changing the county to India, but it seems like you meant to provide a phone number instead. Could you please share your phone number, ensuring it has 7 to 15 digits without any prefixes? Thank you!"
   },
   {
     "role": "user",
-    "content": "+91 3974723947"
+    "content": "change the state with respect to guangzhou"
   },
   {
     "role": "assistant",
-    "content": "Thank you for providing your phone number! However, we were looking for your email address, which should be in the format of something like \"example@domain.com\". Could you please share your email address with us?"
+    "content": "Noted! Your state has been updated to Guangdong. \n\nCould you please provide your phone number?"
   },
   {
     "role": "user",
-    "content": "ward2"
+    "content": "delete country"
   },
   {
     "role": "assistant",
-    "content": "Thank you for your input, but it seems like \"ward2\" didn't match our expected format. Could you please provide your email address? Remember, it should look something like \"example@domain.com.\""
+    "content": "Noted! The country, state, district, and ward have been removed from your information.\n\nCould you please provide your phone number? It should be between 7 to 15 digits long without any prefixes."
   },
   {
     "role": "user",
-    "content": "my ward is ward2"
+    "content": "alappuzha"
   },
   {
     "role": "assistant",
-    "content": "Thank you for sharing that your ward is Ward2! However, it seems we were asking for your email address instead. Could you please provide a valid email address? It should be in the format like name@example.com."
+    "content": "Great! I've noted your district as Alappuzha, and I've auto-filled your country as India and state as Kerala. \n\nCould you please provide your phone number? It should be between 7 to 15 digits without any prefixes."
   },
   {
     "role": "user",
-    "content": "my ward is ward1"
+    "content": "chnage state inrespect to chennai"
   },
   {
     "role": "assistant",
-    "content": "Got it! I've noted your ward as Ward1, and your state is set to Kerala with the district as Alappuzha.\n\nNow, could you please provide your email address?"
+    "content": "I appreciate your input about changing the state in relation to Chennai! However, it seems that we still need your phone number, which should consist of 7 to 15 digits without any prefixes. Could you please provide that for us? Thank you!"
   },
   {
     "role": "user",
-    "content": "city is bengalure"
+    "content": "ward 200"
   },
   {
     "role": "assistant",
-    "content": "Thank you for your input about the city being Bengaluru! However, we actually need your email address at this point. Please provide a valid email format, like example@domain.com, so we can proceed with your account opening."
+    "content": "I appreciate your input of \"ward 200,\" but it seems we're currently asking for your phone number instead. Please provide a valid phone number consisting of 7 to 15 digits without any prefixes. Thank you!"
   }
 ]
