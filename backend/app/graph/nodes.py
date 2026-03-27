@@ -136,6 +136,14 @@ def sanitize(state: FormState) -> dict:
     collected_data = state["collected_data"]
     user_msg_lower = state["user_message"].strip().lower()
 
+    # Build batch-aware context: collected + all extracted values
+    # So when checking ward options, it uses country=India (from same message)
+    # instead of the old country value
+    batch_context = dict(collected_data)
+    for efid, eval in extracted.items():
+        if eval is not None and eval != "":
+            batch_context[efid] = eval
+
     sanitized = {}
     dropped = []
 
@@ -161,23 +169,24 @@ def sanitize(state: FormState) -> dict:
             sanitized[fid] = val
 
         elif has_options(field_def):
-            valid_opts = get_valid_dropdown_values(form, fid, collected_data)
+            # Use batch_context (includes other extracted values from same message)
+            # Remove the field being checked to avoid self-reference
+            check_context = {k: v for k, v in batch_context.items() if k != fid}
+            valid_opts = get_valid_dropdown_values(form, fid, check_context)
             if valid_opts:
                 if any(o.lower() == val_str for o in valid_opts):
                     sanitized[fid] = val
                 else:
-                    # Build reason: check descendants first (child constraining parent),
-                    # then parent context, then generic
                     reason = None
 
                     # Check if a DESCENDANT field is constraining this field
                     descendants = get_all_descendant_field_ids(form, fid)
                     constraining = []
                     for desc_fid in descendants:
-                        if desc_fid in collected_data:
+                        if desc_fid in check_context:
                             desc_field = get_field(form, desc_fid)
                             desc_label = desc_field["label"] if desc_field else desc_fid
-                            constraining.append(f"{desc_label}='{collected_data[desc_fid]}'")
+                            constraining.append(f"{desc_label}='{check_context[desc_fid]}'")
                     if constraining:
                         reason = (
                             f"Cannot set {label} to '{val}' because you already selected "
@@ -192,7 +201,7 @@ def sanitize(state: FormState) -> dict:
                         if parent_fid:
                             parent_field = get_field(form, parent_fid)
                             parent_label = parent_field["label"] if parent_field else parent_fid
-                            parent_val = collected_data.get(parent_fid)
+                            parent_val = check_context.get(parent_fid)
                             if parent_val:
                                 reason = f"'{val}' is not available under {parent_label} '{parent_val}'. Available: {', '.join(valid_opts)}"
 
@@ -204,12 +213,11 @@ def sanitize(state: FormState) -> dict:
             else:
                 # valid_opts is empty or None
                 if valid_opts is not None and len(valid_opts) == 0:
-                    # Empty list = no options exist for current selection
                     parent_fid = field_def.get("parent_field_id")
-                    if parent_fid and parent_fid in collected_data:
+                    if parent_fid and parent_fid in check_context:
                         parent_field = get_field(form, parent_fid)
                         parent_label = parent_field["label"] if parent_field else parent_fid
-                        parent_val = collected_data[parent_fid]
+                        parent_val = check_context[parent_fid]
                         reason = (
                             f"{label} is not applicable for your current {parent_label} '{parent_val}'. "
                             f"There are no {label.lower()} options available under '{parent_val}'."
@@ -308,10 +316,16 @@ def validate_fields(state: FormState) -> dict:
             })
             continue
 
-        # Validate
+        # Validate — build running_data with the full intended state:
+        # 1. Start with collected_data + already-validated pending_data
+        # 2. Override with ALL other extracted fields from this batch
+        #    (so age sees country=Japan if both are in the same message)
+        # 3. Remove the field being validated (so it doesn't conflict with itself)
         running_data = {**collected_data, **pending_data}
-        if is_update and field_id in running_data:
-            running_data.pop(field_id)
+        for other_fid, other_val in extracted.items():
+            if other_fid != field_id:
+                running_data[other_fid] = other_val
+        running_data.pop(field_id, None)
 
         is_valid, error = validate_field(form, field_id, value, running_data)
         if is_valid:

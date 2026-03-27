@@ -1,6 +1,11 @@
 {
   "full_name": "adhi",
-  "age": 15,
-  "email": "adhi@gsus.did",
-  "country": "Japan"
+  "age": 24,
+  "email": "adhi@gmail.com",
+  "phone": "8565452565",
+  "ward": "Ward200",
+  "account_type": "Fixed Deposit",
+  "country": "China",
+  "state": "Guangdong",
+  "district": "Shenzhen"
 }

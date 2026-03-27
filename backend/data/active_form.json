@@ -68,7 +68,7 @@
       "type": "text",
       "required": true,
       "validation_rules": {
-        "regex": "^\\[0-9]{7,15}$",
+        "regex": "^[0-9]{7,15}$",
         "regex_description": "a valid phone number (7-15 digits)"
       }
     },
