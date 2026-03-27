@@ -94,6 +94,7 @@ EXTRACTION_RULES = """RULES:
    - Example: "adhi 25 india" → extract name, age, country separately
    - If CURRENTLY ASKING field not answered but OTHER field matched → return that field WITHOUT _uncertain
 
+   
 9. UPDATE INTENT:
    - User changes existing value (e.g., "change age to 30") → include "_intent": "update"
 
