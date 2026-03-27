@@ -1,6 +1,10 @@
 {
-  "ward": "Ward200",
-  "country": "China",
-  "state": "Guangdong",
-  "district": "Shenzhen"
+
+  "full_name": "adhi",
+  "age": 27,
+  "email": "adhi@gsus.did",
+  "district": "Alappuzha",
+  "country": "India",
+  "state": "Kerala"
+
 }

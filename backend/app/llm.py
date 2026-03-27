@@ -1,4 +1,9 @@
-"""OpenAI / LLM calls: extraction, question generation, error messages."""
+"""OpenAI / LLM calls: extraction, question generation, error messages, query answers.
+
+All prompts combine:
+1. Engine-level rules (universal, in code)
+2. Form-level context (from form metadata: system_prompt + field descriptions)
+"""
 
 import json
 
@@ -16,130 +21,137 @@ def _get_client():
     return _client
 
 
-def call_openai_extract(user_message, form, collected_data, currently_asking=None, currently_asking_field=None):
-    """Ask OpenAI to extract field values from user message.
+# === Shared helpers ===
 
-    Args:
-        currently_asking: field_id of the field we just asked about
-        currently_asking_field: full field definition for currently_asking
+def _build_fields_context(form, collected_data):
+    """Build a dynamic description of all fields with current state.
+    Reused across all LLM calls.
     """
-    fields_desc = []
+    lines = []
     for f in form["fields"]:
         desc = f"- {f['field_id']} ({f['label']}): type={f['type']}"
         if f.get("required"):
             desc += ", required"
         if f.get("validation_rules"):
-            desc += f", rules={json.dumps(f['validation_rules'])}"
+            rules = dict(f["validation_rules"])
+            rules.pop("conditional_rules", None)
+            if rules:
+                desc += f", rules={json.dumps(rules)}"
+        if f.get("parent_field_id"):
+            desc += f", child of {f['parent_field_id']}"
         if has_options(f):
             valid_opts = get_valid_dropdown_values(form, f["field_id"], collected_data)
             if valid_opts:
                 desc += f", valid_options={valid_opts}"
-        fields_desc.append(desc)
+        if f.get("conditional_rules"):
+            desc += f", conditional_rules={json.dumps(f['conditional_rules'])}"
+        lines.append(desc)
+    return "\n".join(lines)
 
-    # Build currently_asking context for the prompt
-    asking_context = ""
-    if currently_asking and currently_asking_field:
-        label = currently_asking_field.get("label", currently_asking)
-        ftype = currently_asking_field.get("type", "text")
-        asking_context = f"""
-CURRENTLY ASKING: "{label}" (field_id: {currently_asking}, type: {ftype})
-"""
-    else:
-        asking_context = """
-CURRENTLY ASKING: None
-"""
 
-    system_prompt = f"""You are a STRICT data extraction assistant for a form.
+def _get_form_prompt(form):
+    """Get the form-specific system prompt from metadata.
+    Returns empty string if not defined.
+    """
+    return form.get("system_prompt", "")
 
-Form: {form['title']}
-Fields:
-{chr(10).join(fields_desc)}
 
-Already collected: {json.dumps(collected_data)}
-{asking_context}
-RULES:
+# === Extraction ===
 
-1. Extract ALL fields explicitly or implicitly mentioned by the user.
+EXTRACTION_RULES = """RULES:
 
-2. CURRENTLY ASKING PRIORITY:
-   - If the user gives a short/direct answer, assume it is for the CURRENTLY ASKING field
-   - BUT ONLY if it passes BOTH:
-     a) TYPE MATCH
-     b) SEMANTIC MATCH (the value logically belongs to that field)
+1. HIGH-CONFIDENCE PATTERN OVERRIDE (HIGHEST PRIORITY):
+   These patterns ALWAYS map to their field, REGARDLESS of which field is currently being asked:
+   - Email pattern (contains @ and domain) → email field
+   - Phone pattern (7-15 digits, optional +) → phone field
+   - Known structured patterns defined in FORM CONTEXT (e.g., ward patterns) → respective field
+   If input matches a high-confidence pattern, map it immediately. Do NOT force it to the currently asking field.
+
+2. BEST-FIT MATCHING (NOT currently-asking-first):
+   - Compare input against ALL uncollected fields
+   - Choose the field with the STRONGEST semantic + type match
+   - Currently asking field gets priority ONLY when match strength is equal
+   - Example: asking for "name", user says "adhi@gmail.com" → email (pattern match wins)
+   - Example: asking for "name", user says "adhi" → full_name (semantic match, fits asked field)
 
 3. TYPE MATCH (STRICT):
    - number → must be numeric (e.g., 25)
-   - text → must be meaningful text (not random unrelated values)
-   - dropdown → must be one of valid_options
+   - text → must be meaningful text
+   - dropdown → must be one of valid_options (allow fuzzy: "kerla" → "Kerala")
 
-4. SEMANTIC MATCH (VERY IMPORTANT):
-   - Even if a value is valid somewhere in the form, DO NOT assign it unless it logically belongs to the field
-   - Example:
-     - Asking: age (number)
-     - User: "India"
-       → "India" is valid for "country" but NOT for "age"
-       → DO NOT map it to age → map to country instead
-   - Example:
-     - Asking: age
-     - User: "adhi"
-       → Not a number, not meaningful for age
-       → DO NOT guess age like 18
+4. SEMANTIC MATCH:
+   - Assign value only to the field it logically belongs to
+   - Example: Asking age, User says "India" → map to country, NOT age
+   - Example: Asking age, User says "adhi" → NOT a number, DO NOT guess age=18
 
-5. CROSS-FIELD MATCHING:
-   - If the value does NOT fit CURRENTLY ASKING field:
-     → Try matching it with OTHER uncollected fields
-   - Example:
-     - Asking: age
-     - User: "India"
-       → map to "country" (not age)
+5. FUZZY MATCHING:
+   - Normalize casing and spacing to match known options
+   - Allow minor spelling variations for known values (defined in FORM CONTEXT)
+   - "kerla" → "Kerala", "banglore" → "Bangalore", "ward 200" → "Ward200"
+   - ONLY fuzzy-match against values that EXIST in the form. NEVER invent new values
 
-6. NO GUESSING / NO DEFAULTS:
+6. MULTI-VALUE EXTRACTION:
+   - User may provide multiple values in one message
+   - Extract ALL recognizable values, each to its correct field
+   - Example: "adhi 20 india" → name + age + country
+   - Example: "adhi@g.com 9876543210" → email + phone
+
+7. NO GUESSING / NO HALLUCINATION:
    - NEVER infer or generate values the user did not say
-   - "adhi" → CANNOT become age=18
-   - NEVER auto-correct or transform unrelated inputs
+   - NEVER convert unrelated text to numbers
+   - "adhi" CANNOT become age=18
 
-7. INVALID OR IRRELEVANT INPUT:
-   - If value does not match ANY field at all → return:
-     {{"_uncertain": true}}
-
-8. PARTIAL EXTRACTION:
-   - Extract valid fields even if some parts are invalid
-   - Example:
-     "adhi 25 india"
-     → extract full_name="adhi", age=25, country="India" (if those fields exist and are uncollected)
-   - Example:
-     - Asking: full_name
-     - User: "age is 19"
-     → full_name is NOT answered, but age=19 IS valid → return {{"age": 19}}
-     → Do NOT return _uncertain if you found a valid match for another field
+8. UNCERTAINTY (STRICT):
+   - Return "_uncertain": true ONLY when ZERO fields match
+   - If at least ONE field was extracted → return that field WITHOUT _uncertain
+   - NEVER return _uncertain alongside extracted fields
 
 9. UPDATE INTENT:
-   - If user explicitly changes existing value (e.g., "change age to 30") → include:
-     "_intent": "update"
+   - User changes existing value (e.g., "change age to 30") → "_intent": "update"
 
 10. DELETE INTENT:
-    - If user wants to remove/delete/clear a field (e.g., "delete age", "remove country", "clear pincode"):
-      → Add "_delete": ["field_id_1", "field_id_2"] listing the field_ids to delete
-    - Delete can be combined with other operations in the same message:
-      - "delete country and update name to abc" → {{"_delete": ["country"], "full_name": "abc", "_intent": "update"}}
-      - "delete age and country india" → {{"_delete": ["age"], "country": "India"}}
-    - Only include field_ids that are CURRENTLY in collected data
-    - Map user's words to the correct field_id (e.g., "delete my name" → "full_name")
+    - User removes a field (e.g., "delete age") → "_delete": ["field_id", ...]
 
-11. STRICT OUTPUT:
-    - Return ONLY valid mappings
-    - Do NOT include fields with weak or doubtful matches
-    - For number fields, return actual numbers not strings
+11. QUERY INTENT:
+    - User asks a question → "_query": "<question as-is>"
+    - Can combine with data operations
 
-12. CONFIDENCE RULE:
-    - Return {{"_uncertain": true}} ONLY when NO field matches at all
-    - If at least one field was extracted confidently, return that field WITHOUT _uncertain
+12. STRICT OUTPUT:
+    - Return ONLY confident mappings
+    - For numbers, return actual numbers not strings
     - Precision > Recall (better to miss than to be wrong)
 
 13. SENSITIVE FIELDS:
     - Password fields → always return ""
 
 Return ONLY a JSON object. No explanation."""
+
+
+def call_openai_extract(user_message, form, collected_data, currently_asking=None, currently_asking_field=None):
+    """Extract field values from user message."""
+    fields_context = _build_fields_context(form, collected_data)
+    form_prompt = _get_form_prompt(form)
+    
+
+    asking_context = ""
+    if currently_asking and currently_asking_field:
+        label = currently_asking_field.get("label", currently_asking)
+        ftype = currently_asking_field.get("type", "text")
+        asking_context = f'\nCURRENTLY ASKING: "{label}" (field_id: {currently_asking}, type: {ftype})\n'
+    else:
+        asking_context = "\nCURRENTLY ASKING: None\n"
+
+    system_prompt = f"""You are a STRICT data extraction assistant.
+
+Form: {form['title']}
+{f"FORM CONTEXT: {form_prompt}" if form_prompt else ""}
+
+Fields:
+{fields_context}
+
+Already collected: {json.dumps(collected_data)}
+{asking_context}
+{EXTRACTION_RULES}"""
 
     response = _get_client().chat.completions.create(
         model="gpt-4o-mini",
@@ -157,15 +169,38 @@ Return ONLY a JSON object. No explanation."""
         return {}
 
 
-def call_openai_next_question(form, collected_data, missing_fields, last_action=None):
-    """Ask OpenAI to generate the next question.
+# === Next Question ===
 
-    Args:
-        last_action: dict describing what just happened, e.g.:
-            {"stored": {"age": 25, "country": "India"}, "auto_filled": {"state": "Kerala"},
-             "inferred": {"country": "India"}, "updated": {"age": 30},
-             "unanswered_field": "full_name"}
-    """
+QUESTION_RULES = """YOUR RESPONSE MUST FOLLOW THIS STRUCTURE:
+
+1. ACKNOWLEDGE (if LAST ACTION exists):
+   - Briefly confirm what was just saved/updated/inferred/deleted
+   - Warm tone: "Great!", "Perfect!", "Got it!", "Noted!"
+   - ONE short sentence max
+   - If user skipped the asked question, gently remind them
+
+2. ASK THE NEXT QUESTION:
+   - Ask for ONE field only
+   - Be natural and conversational
+   - For dropdowns: list options in a friendly way
+   - For password: mention the requirements clearly
+
+FORMATTING:
+- Line break between acknowledgment and question
+- Max 3 sentences total
+- No bullet points, no raw field names
+- Sound human, not robotic
+
+LANGUAGE (CRITICAL):
+- NEVER use internal terms: "dropdown", "options list", "field_id", "valid_options", "hierarchy", "metadata"
+- Say "you can choose from" or "would you prefer" — NOT "select from dropdown options"
+- Use natural everyday language as if talking to a real person"""
+
+
+def call_openai_next_question(form, collected_data, missing_fields, last_action=None):
+    """Generate the next question to ask the user."""
+    form_prompt = _get_form_prompt(form)
+
     fields_info = []
     for fid in missing_fields:
         field = get_field(form, fid)
@@ -186,80 +221,56 @@ def call_openai_next_question(form, collected_data, missing_fields, last_action=
     if not fields_info:
         return "All fields have been collected!"
 
-    # Build last action context for the prompt
+    # Build last action context
     action_context = ""
     if last_action:
         parts = []
         stored = last_action.get("stored", {})
         if stored:
             items = ", ".join(f"{k}='{v}'" for k, v in stored.items())
-            parts.append(f"User just provided: {items}. Acknowledge this briefly.")
+            parts.append(f"User just provided: {items}. Acknowledge briefly.")
 
         auto_filled = last_action.get("auto_filled", {})
         if auto_filled:
             items = ", ".join(f"{k}='{v}'" for k, v in auto_filled.items())
-            parts.append(f"Auto-filled (only one valid option): {items}. Mention this to the user.")
+            parts.append(f"Auto-filled (only one option): {items}. Mention to user.")
 
         inferred = last_action.get("inferred", {})
         if inferred:
             items = ", ".join(f"{k}='{v}'" for k, v in inferred.items())
-            parts.append(f"System inferred from hierarchy: {items}. Mention this naturally (e.g., 'Since you selected X, I've set Y').")
+            parts.append(f"System inferred: {items}. Mention naturally.")
 
         updated = last_action.get("updated", {})
         if updated:
             items = ", ".join(f"{k}='{v}'" for k, v in updated.items())
-            parts.append(f"User updated: {items}. Confirm the update briefly.")
+            parts.append(f"User updated: {items}. Confirm briefly.")
 
         deleted = last_action.get("deleted", [])
         if deleted:
             items = ", ".join(deleted)
-            parts.append(f"User deleted: {items}. Confirm the deletion briefly (e.g., 'Done, I've removed X'). If dependent fields were also removed, mention that naturally.")
+            parts.append(f"User deleted: {items}. Confirm deletion briefly.")
 
         unanswered = last_action.get("unanswered_field")
         if unanswered:
             field = get_field(form, unanswered)
             label = field["label"] if field else unanswered
-            parts.append(f"The user did NOT answer the previously asked question about '{label}'. After acknowledging what was stored, remind them and ask for '{label}' now.")
+            parts.append(f"User did NOT answer '{label}'. Remind them and ask for it now.")
 
         if parts:
             action_context = "\n\nLAST ACTION:\n" + "\n".join(f"- {p}" for p in parts)
 
-    system_prompt = f"""You are a warm, professional form assistant helping a user fill out "{form['title']}".
+    system_prompt = f"""You are a warm, professional form assistant.
+
+Form: {form['title']}
+{f"FORM CONTEXT: {form_prompt}" if form_prompt else ""}
 
 Already collected: {json.dumps(collected_data)}
 
 Missing fields (ask the FIRST one that makes sense):
 {chr(10).join(fields_info)}
 {action_context}
-YOUR RESPONSE MUST FOLLOW THIS STRUCTURE:
 
-1. ACKNOWLEDGE (if LAST ACTION exists):
-   - Briefly confirm what was just saved/updated/inferred
-   - Use a warm tone: "Great!", "Perfect!", "Got it!", "Noted!", "Awesome!" etc.
-   - Keep it to ONE short sentence
-   - If user skipped the asked question, gently remind them
-
-2. ASK THE NEXT QUESTION:
-   - Ask for ONE field only
-   - Be natural and conversational
-   - For dropdowns: list options in a friendly way
-     Example: "Would you like to go with Savings, Current, or Fixed Deposit?"
-   - For text/number: ask naturally
-     Example: "What's your email address?"
-   - For password: mention the requirements clearly
-
-FORMATTING RULES:
-- Use line breaks between acknowledgment and question for readability
-- Keep the total response under 3 sentences
-- Do NOT use bullet points or numbered lists in the response
-- Do NOT dump raw field names — use friendly labels
-- Do NOT repeat back ALL collected data — only acknowledge the latest action
-- Sound human, not robotic
-
-EXAMPLES OF GOOD RESPONSES:
-- "Great, noted your name as Adithyan! 😊\n\nHow old are you?"
-- "Perfect, I've set your country to India. Since Kerala only has one state option, I've auto-filled that for you!\n\nWhich district would you prefer — Alappuzha, Ernakulam, or Kottayam?"
-- "Got it, I've recorded Kerala as your state! However, you haven't mentioned your age yet.\n\nCould you please tell me your age?"
+{QUESTION_RULES}
 
 Return ONLY the message text."""
 
@@ -274,18 +285,79 @@ Return ONLY the message text."""
     return response.choices[0].message.content.strip()
 
 
+# === Error Message ===
+
 def call_openai_error_message(form, field_errors, user_message, collected_data):
-    """Ask OpenAI to generate a user-friendly error message."""
-    system_prompt = f"""You are a helpful form assistant. The user provided some data that failed validation.
+    """Generate a user-friendly error message with proper context per error type."""
+    form_prompt = _get_form_prompt(form)
+
+    # Enrich errors with field labels and valid options for better LLM context
+    enriched_errors = []
+    for err in field_errors:
+        enriched = dict(err)
+        fid = err.get("field_id", "")
+
+        # Add field label
+        field = get_field(form, fid) if fid and fid != "hierarchy" else None
+        if field:
+            enriched["field_label"] = field.get("label", fid)
+
+            # Add valid options if it's an options field
+            if has_options(field):
+                valid_opts = get_valid_dropdown_values(form, fid, collected_data)
+                if valid_opts:
+                    enriched["valid_options"] = valid_opts
+
+            # Add parent info for hierarchy fields
+            if field.get("parent_field_id"):
+                parent = get_field(form, field["parent_field_id"])
+                parent_val = collected_data.get(field["parent_field_id"])
+                if parent and parent_val:
+                    enriched["parent_field"] = parent.get("label", field["parent_field_id"])
+                    enriched["parent_value"] = parent_val
+
+        enriched_errors.append(enriched)
+
+    system_prompt = f"""You are a warm, helpful form assistant. The user provided data that was rejected.
 
 Form: {form['title']}
+{f"FORM CONTEXT: {form_prompt}" if form_prompt else ""}
+
 Already collected: {json.dumps(collected_data)}
 User said: "{user_message}"
 
-Validation errors:
-{json.dumps(field_errors, indent=2)}
+Rejected fields with details:
+{json.dumps(enriched_errors, indent=2)}
 
-Generate a clear, friendly message explaining what went wrong and how to fix it. Be concise."""
+GENERATE A RESPONSE following these rules:
+
+1. ACKNOWLEDGE the user's intent first ("I see you're trying to set...")
+2. EXPLAIN the rejection based on error type:
+
+   A. HIERARCHY CONFLICT (error mentions "does not belong to"):
+      - Explain that the value doesn't match their current parent selection
+      - Use the parent_field and parent_value to explain: "Since you selected [parent], the available [child] options are: [list]"
+      - Show valid_options if provided
+
+   B. FORMAT / VALIDATION ERROR (error mentions "must be", "must contain"):
+      - State the requirement clearly using the error message
+      - Give a hint: "Please provide a value that meets: [requirement]"
+
+   C. CONDITIONAL RULE VIOLATION (error mentions "due to"):
+      - Explain the dependency: "Because you selected [trigger], [field] needs to be [requirement]"
+
+   D. DUPLICATE WITHOUT UPDATE (error mentions "already provided"):
+      - Tell user how to update: "say 'change [field] to [value]'"
+
+3. If valid_options are listed in the error → mention them naturally
+4. Keep it concise — max 3 sentences per error
+5. If multiple errors, address each briefly
+
+LANGUAGE (CRITICAL):
+- NEVER say "dropdown", "field_id", "valid_options", "hierarchy", "metadata", "parent_field_id"
+- Use field labels only (e.g., "Country", "District" — not "country", "district")
+- Sound like a real person helping, not a system error
+- Be encouraging, not blaming"""
 
     response = _get_client().chat.completions.create(
         model="gpt-4o-mini",
@@ -293,6 +365,121 @@ Generate a clear, friendly message explaining what went wrong and how to fix it.
             {"role": "system", "content": system_prompt},
         ],
         temperature=0.5,
+    )
+
+    return response.choices[0].message.content.strip()
+
+
+# === Nudge (uncertain input) ===
+
+def call_openai_nudge_message(user_message, form, collected_data, currently_asking=None, currently_asking_field=None):
+    """Generate a helpful message when the system couldn't understand the user's input."""
+    form_prompt = _get_form_prompt(form)
+
+    asking_info = ""
+    if currently_asking and currently_asking_field:
+        label = currently_asking_field.get("label", currently_asking)
+        ftype = currently_asking_field.get("type", "text")
+        asking_info = f'We were asking for: "{label}" (type: {ftype})'
+
+        if has_options(currently_asking_field):
+            valid_opts = get_valid_dropdown_values(form, currently_asking, collected_data)
+            if valid_opts:
+                asking_info += f'\nAvailable choices: {", ".join(valid_opts)}'
+
+        rules = currently_asking_field.get("validation_rules", {})
+        if rules:
+            clean_rules = {k: v for k, v in rules.items() if k != "conditional_rules"}
+            if clean_rules:
+                asking_info += f"\nRequirements: {json.dumps(clean_rules)}"
+
+    system_prompt = f"""You are a warm, helpful form assistant. The user provided input that we couldn't match to any field.
+
+Form: {form['title']}
+{f"FORM CONTEXT: {form_prompt}" if form_prompt else ""}
+
+Already collected: {json.dumps(collected_data)}
+
+{asking_info}
+
+User said: "{user_message}"
+
+Generate a friendly response that:
+1. Acknowledges what the user said (don't ignore their input)
+2. Explains briefly why it didn't match (wrong type, not a valid option, etc.)
+3. Clearly re-asks for the field we need, with helpful hints
+4. If the field has specific options, mention them naturally
+5. Keep it concise — max 2-3 sentences
+
+LANGUAGE:
+- NEVER use internal terms like "dropdown", "field_id", "valid_options", "extraction"
+- Sound like a real person helping, not a system error
+- Be encouraging, not robotic
+
+Return ONLY the message text."""
+
+    response = _get_client().chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_prompt},
+        ],
+        temperature=0.7,
+    )
+
+    return response.choices[0].message.content.strip()
+
+
+# === Query Answer ===
+
+def call_openai_answer_query(query, form, collected_data):
+    """Answer a user's question about the form, fields, options, or their data."""
+    fields_context = _build_fields_context(form, collected_data)
+    form_prompt = _get_form_prompt(form)
+
+    # Include full dropdown hierarchy for accurate answers
+    hierarchy_info = []
+    for f in form["fields"]:
+        if f.get("dropdown_options"):
+            hierarchy_info.append(f"- {f['field_id']}: options={json.dumps(f['dropdown_options'])}")
+
+    system_prompt = f"""You are a helpful form assistant answering a user's question.
+
+Form: {form['title']}
+{f"FORM CONTEXT: {form_prompt}" if form_prompt else ""}
+
+Fields:
+{fields_context}
+
+Full dropdown hierarchy:
+{chr(10).join(hierarchy_info) if hierarchy_info else "None"}
+
+Currently collected data: {json.dumps(collected_data)}
+
+RULES:
+1. Answer ONLY based on form metadata and collected data above.
+2. If question is about options/choices:
+   - Check if parent field is already selected → show only relevant children
+   - If no parent selected → show all available
+3. If question is about collected data → format as a nice summary.
+4. Keep answer concise, friendly, accurate.
+5. Do NOT make up data — always depend on given data, not from outside.
+6. LANGUAGE (CRITICAL):
+   - NEVER use technical/internal terms like "dropdown", "options", "valid_options", "field_id", "hierarchy", "metadata"
+   - Speak naturally as if talking to a real person
+   - Say "available choices" or "you can choose from" — NOT "dropdown options"
+   - Say "under Tokyo" — NOT "part of the Tokyo district in the dropdown"
+   - Example BAD: "In the dropdown options, there are 2 wards: Ward1 and Ward2"
+   - Example GOOD: "Under Tokyo, you can choose between Ward1 and Ward2"
+
+Return ONLY the answer text."""
+
+    response = _get_client().chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": query},
+        ],
+        temperature=0.3,
     )
 
     return response.choices[0].message.content.strip()

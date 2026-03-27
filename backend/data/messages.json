@@ -1,7 +1,16 @@
 [
   {
     "role": "assistant",
-    "content": "Great, I've noted that you're ready to proceed! \n\nCould you please tell me your full name?"
+
+    "content": "Got it! We're ready to proceed with your bank account opening.\n\nCould you please share your full legal name?"
+  },
+  {
+    "role": "user",
+    "content": "adhi 27 adhi@gsus.did 8585658565 alappuzha"
+  },
+  {
+    "role": "assistant",
+    "content": "I see you're trying to set up your account details. However, the Phone Number you provided must be a valid phone number consisting of 7 to 15 digits only. Please provide a value that meets this requirement.\n\nIf you have any questions or need further assistance, feel free to ask!\n\nNoted! I've saved your full name, age, email, and district, and I've inferred your country as India and state as Kerala.\n\nCould you please provide your phone number? It should be between 7 to 15 digits long without any prefixes."
   },
   {
     "role": "user",
@@ -9,14 +18,150 @@
   },
   {
     "role": "assistant",
-    "content": "Awesome, I've noted your ward as Ward200! Since you're in China, I've auto-filled your country, state, and district for you. \n\nCould you please share your full name?"
+    "content": "Thank you for your input regarding \"ward200.\" However, we are currently looking for your phone number, which should be between 7 to 15 digits long without any prefixes. Please provide your phone number, and I'll be happy to assist you further!"
   },
   {
     "role": "user",
-    "content": "give all distrcts data"
+    "content": "ward2"
   },
   {
     "role": "assistant",
-    "content": "I didn't quite catch that. Could you please provide your Full Name?"
+    "content": "Thank you for your input, but it seems that \"ward2\" doesn't match the expected format for the ward number. Please provide your phone number, which should be between 7 to 15 digits long, and ensure it's free from any prefixes. I'm here to help!"
+  },
+  {
+    "role": "user",
+    "content": "delete district"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've successfully deleted the district information.\n\nCould you please provide your phone number? It should be between 7 to 15 digits long."
+  },
+  {
+    "role": "user",
+    "content": "remove the state and country"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've removed the state and country information.\n\nCould you please provide your phone number? It should be between 7 to 15 digits without any prefixes."
+  },
+  {
+    "role": "user",
+    "content": "ward200"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! Your ward has been saved as Ward200, and I've noted that you are in China, specifically in Guangdong, Shenzhen.\n\nCould you please provide your phone number? It should be between 7 to 15 digits without any prefix."
+  },
+  {
+    "role": "user",
+    "content": "district Shenzhen"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've provided your details, including your name, age, email, ward, country, state, and district. \n\nCould you please share your phone number? It should be between 7 to 15 digits, without any prefixes."
+  },
+  {
+    "role": "user",
+    "content": "remove country"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! You've deleted the country, state, district, and ward information.\n\nLet's move on. Could you please provide your phone number?"
+  },
+  {
+    "role": "user",
+    "content": "ward200"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! Your ward has been saved as Ward200, and I\u2019ve filled in your country as China, state as Guangdong, and district as Shenzhen.\n\nNow, could you please provide your phone number? It should be between 7 to 15 digits without any prefixes."
+  },
+  {
+    "role": "user",
+    "content": "district Guangzhou"
+  },
+  {
+    "role": "assistant",
+    "content": "Thank you for your input regarding the district, but unfortunately, \"Guangzhou\" does not match the current district we have on file, which is \"Shenzhen.\" Could you please provide your phone number? It should be 7 to 15 digits long, with no prefixes."
+  },
+  {
+    "role": "user",
+    "content": "list districts in Guangdong"
+  },
+  {
+    "role": "assistant",
+    "content": "In Guangdong, you can choose from the following districts:\n\n- Shenzhen\n- Guangzhou\n\nGot it! You've provided your details up to your location in Shenzhen, China.\n\nCould you please share your phone number? It should be between 7 to 15 digits, without any prefix."
+  },
+  {
+    "role": "user",
+    "content": "why cant set district Guangzhou"
+  },
+  {
+    "role": "assistant",
+    "content": "You cannot set the district to Guangzhou because your selected state is Guangdong, which only allows Shenzhen as the district option. If you would like to change your district, you can only select Shenzhen under Guangdong.\n\nGot it! I've noted your details so far.\n\nCould you please provide your phone number? It should be between 7 to 15 digits long, without any prefixes."
+  },
+  {
+    "role": "user",
+    "content": "change the state with respect to guangzhou"
+  },
+  {
+    "role": "assistant",
+    "content": "Noted! Your state has been updated to Guangdong.\n\nCould you please provide your phone number? It should be between 7 to 15 digits, without any prefixes."
+  },
+  {
+    "role": "user",
+    "content": "show me the district under Guangdong"
+  },
+  {
+    "role": "assistant",
+    "content": "Under Guangdong, you can choose from the following districts: Shenzhen and Guangzhou.\n\nGot it! Your details have been noted.\n\nCould you please provide your phone number?"
+  },
+  {
+    "role": "user",
+    "content": "change county to india"
+  },
+  {
+    "role": "assistant",
+    "content": "I appreciate your input about changing the county to India, but it seems like you meant to provide a phone number instead. Could you please share your phone number, ensuring it has 7 to 15 digits without any prefixes? Thank you!"
+  },
+  {
+    "role": "user",
+    "content": "change the state with respect to guangzhou"
+  },
+  {
+    "role": "assistant",
+    "content": "Noted! Your state has been updated to Guangdong. \n\nCould you please provide your phone number?"
+  },
+  {
+    "role": "user",
+    "content": "delete country"
+  },
+  {
+    "role": "assistant",
+    "content": "Noted! The country, state, district, and ward have been removed from your information.\n\nCould you please provide your phone number? It should be between 7 to 15 digits long without any prefixes."
+  },
+  {
+    "role": "user",
+    "content": "alappuzha"
+  },
+  {
+    "role": "assistant",
+    "content": "Great! I've noted your district as Alappuzha, and I've auto-filled your country as India and state as Kerala. \n\nCould you please provide your phone number? It should be between 7 to 15 digits without any prefixes."
+  },
+  {
+    "role": "user",
+    "content": "chnage state inrespect to chennai"
+  },
+  {
+    "role": "assistant",
+    "content": "I appreciate your input about changing the state in relation to Chennai! However, it seems that we still need your phone number, which should consist of 7 to 15 digits without any prefixes. Could you please provide that for us? Thank you!"
+  },
+  {
+    "role": "user",
+    "content": "ward 200"
+  },
+  {
+    "role": "assistant",
+    "content": "I appreciate your input of \"ward 200,\" but it seems we're currently asking for your phone number instead. Please provide a valid phone number consisting of 7 to 15 digits without any prefixes. Thank you!"
   }
 ]

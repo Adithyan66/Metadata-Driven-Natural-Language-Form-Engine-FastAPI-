@@ -22,6 +22,8 @@ from app.llm import (
     call_openai_extract,
     call_openai_next_question,
     call_openai_error_message,
+    call_openai_answer_query,
+    call_openai_nudge_message,
 )
 
 router = APIRouter()
@@ -140,6 +142,18 @@ def chat(req: ChatRequest):
     delete_fields = extracted.pop("_delete", [])
     if not isinstance(delete_fields, list):
         delete_fields = [delete_fields] if delete_fields else []
+    query = extracted.pop("_query", None)
+
+    # Process query — answer the user's question using form metadata
+    query_answer = None
+    if query:
+        query_answer = call_openai_answer_query(query, form, collected_data)
+
+    def _with_query(msg):
+        """Prepend query answer to any response message."""
+        if query_answer:
+            return query_answer + "\n\n" + msg
+        return msg
 
     # Process deletes — remove fields + cascade hierarchy children + re-validate
     deleted_labels = []
@@ -219,14 +233,14 @@ def chat(req: ChatRequest):
 
     # If nothing survived extraction + sanitization
     if not extracted:
-        # If deletes happened, acknowledge them and ask next question
-        if deleted_labels:
+        # If query only (no data, no deletes) — answer and re-ask current field
+        if query_answer and not deleted_labels:
             missing = get_missing_fields(form, collected_data)
-            last_action = {"deleted": deleted_labels}
             if missing:
-                response_msg = call_openai_next_question(form, collected_data, missing, last_action=last_action)
+                next_q = call_openai_next_question(form, collected_data, missing)
+                response_msg = _with_query(next_q)
             else:
-                response_msg = "All information has been collected. Thank you!"
+                response_msg = _with_query("All information has been collected. Thank you!")
 
             messages.append({"role": "assistant", "content": response_msg})
             write_json("messages.json", messages)
@@ -242,17 +256,36 @@ def chat(req: ChatRequest):
                 "suggestions": get_suggestions(form, collected_data, missing, currently_asking=new_asking),
             }
 
-        # No deletes, no extractions — re-ask
+        # If deletes happened, acknowledge them and ask next question
+        if deleted_labels:
+            missing = get_missing_fields(form, collected_data)
+            last_action = {"deleted": deleted_labels}
+            if missing:
+                response_msg = _with_query(call_openai_next_question(form, collected_data, missing, last_action=last_action))
+            else:
+                response_msg = _with_query("All information has been collected. Thank you!")
+
+            messages.append({"role": "assistant", "content": response_msg})
+            write_json("messages.json", messages)
+            _save_currently_asking(form, collected_data)
+
+            new_asking, _ = get_currently_asking(form, collected_data)
+            return {
+                "status": "pending" if missing else "complete",
+                "message": response_msg,
+                "collected_data": _mask_sensitive(form, collected_data),
+                "missing_fields": missing,
+                "invalid_fields": [],
+                "suggestions": get_suggestions(form, collected_data, missing, currently_asking=new_asking),
+            }
+
+        # No deletes, no extractions — let LLM explain what went wrong
         currently_asking, currently_asking_field = get_currently_asking(form, collected_data)
-        if currently_asking and currently_asking_field:
-            label = currently_asking_field["label"]
-            nudge_msg = f"I didn't quite catch that. Could you please provide your {label}?"
-            if has_options(currently_asking_field):
-                valid_opts = get_valid_dropdown_values(form, currently_asking, collected_data)
-                if valid_opts:
-                    nudge_msg += f" You can choose from: {', '.join(valid_opts)}."
-        else:
-            nudge_msg = "I didn't quite understand that. Could you please rephrase?"
+        nudge_msg = call_openai_nudge_message(
+            req.message, form, collected_data,
+            currently_asking=currently_asking,
+            currently_asking_field=currently_asking_field,
+        )
 
         messages.append({"role": "assistant", "content": nudge_msg})
         write_json("messages.json", messages)
@@ -418,9 +451,9 @@ def chat(req: ChatRequest):
         error_msg = call_openai_error_message(form, all_errors, req.message, collected_data)
         if missing:
             next_q = call_openai_next_question(form, collected_data, missing, last_action=last_action if last_action else None)
-            response_msg = error_msg + "\n\n" + next_q
+            response_msg = _with_query(error_msg + "\n\n" + next_q)
         else:
-            response_msg = error_msg
+            response_msg = _with_query(error_msg)
 
         status = "conflict" if all_conflicts else "pending"
 
@@ -448,7 +481,7 @@ def chat(req: ChatRequest):
     missing = get_missing_fields(form, collected_data)
 
     if not missing:
-        response_msg = "All information has been collected. Thank you!"
+        response_msg = _with_query("All information has been collected. Thank you!")
         status = "complete"
     else:
         # Build last_action context for the LLM
@@ -478,7 +511,7 @@ def chat(req: ChatRequest):
         if currently_asking and currently_asking in missing and extracted:
             last_action["unanswered_field"] = currently_asking
 
-        response_msg = call_openai_next_question(form, collected_data, missing, last_action=last_action)
+        response_msg = _with_query(call_openai_next_question(form, collected_data, missing, last_action=last_action))
         status = "pending"
 
     messages.append({"role": "assistant", "content": response_msg})
