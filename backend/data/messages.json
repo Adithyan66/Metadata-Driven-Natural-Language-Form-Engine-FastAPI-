@@ -370,5 +370,77 @@
   {
     "role": "assistant",
     "content": "I didn't quite catch that. Could you please provide your Email Address?"
+  },
+  {
+    "role": "user",
+    "content": "nijfvdidfdn@ijfn"
+  },
+  {
+    "role": "assistant",
+    "content": "I didn't quite catch that. Could you please provide your Email Address?"
+  },
+  {
+    "role": "user",
+    "content": "nijfvdidfdn@ijfn"
+  },
+  {
+    "role": "assistant",
+    "content": "Thank you for providing your email address! However, it seems that the format you entered doesn't match a valid email address. Please make sure it follows the format of something like \"example@domain.com\" and try again."
+  },
+  {
+    "role": "user",
+    "content": "askcjbakjc"
+  },
+  {
+    "role": "assistant",
+    "content": "Thank you for your response, but it seems that \"askcjbakjc\" doesn't match the format of a valid email address. An email should look something like \"example@domain.com.\" Could you please provide a valid email address?"
+  },
+  {
+    "role": "user",
+    "content": "india"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! Your name, age, country, and phone number have been successfully saved. \n\nCould you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "+91 3974723947"
+  },
+  {
+    "role": "assistant",
+    "content": "Thank you for providing your phone number! However, we were looking for your email address, which should be in the format of something like \"example@domain.com\". Could you please share your email address with us?"
+  },
+  {
+    "role": "user",
+    "content": "ward2"
+  },
+  {
+    "role": "assistant",
+    "content": "Thank you for your input, but it seems like \"ward2\" didn't match our expected format. Could you please provide your email address? Remember, it should look something like \"example@domain.com.\""
+  },
+  {
+    "role": "user",
+    "content": "my ward is ward2"
+  },
+  {
+    "role": "assistant",
+    "content": "Thank you for sharing that your ward is Ward2! However, it seems we were asking for your email address instead. Could you please provide a valid email address? It should be in the format like name@example.com."
+  },
+  {
+    "role": "user",
+    "content": "my ward is ward1"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! I've noted your ward as Ward1, and your state is set to Kerala with the district as Alappuzha.\n\nNow, could you please provide your email address?"
+  },
+  {
+    "role": "user",
+    "content": "city is bengalure"
+  },
+  {
+    "role": "assistant",
+    "content": "Thank you for your input about the city being Bengaluru! However, we actually need your email address at this point. Please provide a valid email format, like example@domain.com, so we can proceed with your account opening."
   }
 ]

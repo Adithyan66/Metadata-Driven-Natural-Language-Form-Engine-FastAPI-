@@ -23,6 +23,7 @@ from app.llm import (
     call_openai_next_question,
     call_openai_error_message,
     call_openai_answer_query,
+    call_openai_nudge_message,
 )
 
 router = APIRouter()
@@ -278,17 +279,13 @@ def chat(req: ChatRequest):
                 "suggestions": get_suggestions(form, collected_data, missing, currently_asking=new_asking),
             }
 
-        # No deletes, no extractions — re-ask
+        # No deletes, no extractions — let LLM explain what went wrong
         currently_asking, currently_asking_field = get_currently_asking(form, collected_data)
-        if currently_asking and currently_asking_field:
-            label = currently_asking_field["label"]
-            nudge_msg = f"I didn't quite catch that. Could you please provide your {label}?"
-            if has_options(currently_asking_field):
-                valid_opts = get_valid_dropdown_values(form, currently_asking, collected_data)
-                if valid_opts:
-                    nudge_msg += f" You can choose from: {', '.join(valid_opts)}."
-        else:
-            nudge_msg = "I didn't quite understand that. Could you please rephrase?"
+        nudge_msg = call_openai_nudge_message(
+            req.message, form, collected_data,
+            currently_asking=currently_asking,
+            currently_asking_field=currently_asking_field,
+        )
 
         messages.append({"role": "assistant", "content": nudge_msg})
         write_json("messages.json", messages)

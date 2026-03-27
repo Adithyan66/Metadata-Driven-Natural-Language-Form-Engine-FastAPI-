@@ -314,6 +314,65 @@ Generate a clear, friendly message explaining what went wrong and how to fix it.
     return response.choices[0].message.content.strip()
 
 
+# === Nudge (uncertain input) ===
+
+def call_openai_nudge_message(user_message, form, collected_data, currently_asking=None, currently_asking_field=None):
+    """Generate a helpful message when the system couldn't understand the user's input."""
+    form_prompt = _get_form_prompt(form)
+
+    asking_info = ""
+    if currently_asking and currently_asking_field:
+        label = currently_asking_field.get("label", currently_asking)
+        ftype = currently_asking_field.get("type", "text")
+        asking_info = f'We were asking for: "{label}" (type: {ftype})'
+
+        if has_options(currently_asking_field):
+            valid_opts = get_valid_dropdown_values(form, currently_asking, collected_data)
+            if valid_opts:
+                asking_info += f'\nAvailable choices: {", ".join(valid_opts)}'
+
+        rules = currently_asking_field.get("validation_rules", {})
+        if rules:
+            clean_rules = {k: v for k, v in rules.items() if k != "conditional_rules"}
+            if clean_rules:
+                asking_info += f"\nRequirements: {json.dumps(clean_rules)}"
+
+    system_prompt = f"""You are a warm, helpful form assistant. The user provided input that we couldn't match to any field.
+
+Form: {form['title']}
+{f"FORM CONTEXT: {form_prompt}" if form_prompt else ""}
+
+Already collected: {json.dumps(collected_data)}
+
+{asking_info}
+
+User said: "{user_message}"
+
+Generate a friendly response that:
+1. Acknowledges what the user said (don't ignore their input)
+2. Explains briefly why it didn't match (wrong type, not a valid option, etc.)
+3. Clearly re-asks for the field we need, with helpful hints
+4. If the field has specific options, mention them naturally
+5. Keep it concise — max 2-3 sentences
+
+LANGUAGE:
+- NEVER use internal terms like "dropdown", "field_id", "valid_options", "extraction"
+- Sound like a real person helping, not a system error
+- Be encouraging, not robotic
+
+Return ONLY the message text."""
+
+    response = _get_client().chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_prompt},
+        ],
+        temperature=0.7,
+    )
+
+    return response.choices[0].message.content.strip()
+
+
 # === Query Answer ===
 
 def call_openai_answer_query(query, form, collected_data):
