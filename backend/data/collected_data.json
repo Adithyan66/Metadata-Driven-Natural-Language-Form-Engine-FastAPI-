@@ -1,7 +1,4 @@
 {
-  "full_name": "adithyan",
-  "age": 10,
-  "email": "adhi@hid.dih",
-  "ward": "Ward200",
-  "account_type": "Fixed Deposit"
+  "district": "Mangalore",
+  "country": "India"
 }

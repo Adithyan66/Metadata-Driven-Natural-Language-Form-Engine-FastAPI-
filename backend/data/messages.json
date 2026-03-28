@@ -1,14 +1,38 @@
 [
   {
     "role": "assistant",
-    "content": "Got it! \n\nI noticed you didn\u2019t provide a full name, which is required. Please share your full legal name so we can proceed with your bank account opening."
+    "content": "Got it! \n\nI noticed that \"ward200\" was normalized to \"Ward200\" for the ward field. \n\nNow, could you please tell me your full legal name?"
   },
   {
     "role": "user",
-    "content": "adithyan 10 adhi@hid.dih ward200 fixed"
+    "content": "mangalofe"
   },
   {
     "role": "assistant",
-    "content": "Great! I've noted your details: full name, age, email, ward, and account type.\n\nHowever, I see your age is currently set to 10, which doesn't meet the minimum requirement for opening a bank account in India. You must be at least 18 years old. \n\nCould you please provide your phone number?"
+    "content": "Thank you for your input! However, \"mangalofe\" doesn't meet the minimum length requirement of 2 characters for a full name. Please provide your full legal name, ensuring it's at least two characters long. If you have any questions or need assistance, feel free to ask!"
+  },
+  {
+    "role": "user",
+    "content": "mangalore"
+  },
+  {
+    "role": "assistant",
+    "content": "Noted! I have saved your district as Mangalore and inferred your country as India.\n\nCould you please provide your full legal name?"
+  },
+  {
+    "role": "user",
+    "content": "what all are tge possible states that have"
+  },
+  {
+    "role": "assistant",
+    "content": "Since you have selected India as your country, here are the possible states you can choose from:\n\n1. Kerala\n2. Tamil Nadu\n3. Karnataka\n\nIf you need more information or would like to proceed with any specific state, just let me know!\n\nGreat! I\u2019ve noted that your district is Mangalore and your country is India.\n\nCould you please provide your full legal name?"
+  },
+  {
+    "role": "user",
+    "content": "what all are tge possible states that have"
+  },
+  {
+    "role": "assistant",
+    "content": "Since your district is Mangalore, the only state available is Karnataka.\n\nGot it! I have noted that your district is Mangalore and your country is India. \n\nNow, could you please provide your full legal name?"
   }
 ]

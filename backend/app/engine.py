@@ -62,12 +62,26 @@ def infer_parents_from_hierarchy(form, data):
                 break
 
             matches = find_value_in_hierarchy(form, child_val)
-            parent_values = set()
+            # Filter matches by already-known ancestors (in data or inferred)
+            known = {**data, **inferred}
+            compatible_matches = []
             for m in matches:
-                if m["field_id"] == child_fid:
-                    parent_val = m.get("parents", {}).get(parent_fid)
-                    if parent_val:
-                        parent_values.add(parent_val)
+                if m["field_id"] != child_fid:
+                    continue
+                # Check all known ancestors match this path
+                is_compatible = True
+                for ancestor_fid, ancestor_val in m.get("parents", {}).items():
+                    if ancestor_fid in known and known[ancestor_fid].lower() != ancestor_val.lower():
+                        is_compatible = False
+                        break
+                if is_compatible:
+                    compatible_matches.append(m)
+
+            parent_values = set()
+            for m in compatible_matches:
+                parent_val = m.get("parents", {}).get(parent_fid)
+                if parent_val:
+                    parent_values.add(parent_val)
 
             if len(parent_values) == 1:
                 inferred[parent_fid] = parent_values.pop()
@@ -80,7 +94,10 @@ def infer_parents_from_hierarchy(form, data):
 
 
 def _get_ambiguous_parents(form, data):
-    """Find fields with ambiguous parent inference."""
+    """Find fields with ambiguous parent inference.
+    Walks up the ENTIRE ancestor chain — if district is ambiguous,
+    state and country are also ambiguous.
+    """
     ambiguous = {}
     for field in form["fields"]:
         fid = field["field_id"]
@@ -88,8 +105,38 @@ def _get_ambiguous_parents(form, data):
             continue
         if fid not in data:
             continue
+
+        # Find all possible parent paths for this value
+        matches = find_value_in_hierarchy(form, data[fid])
+        field_matches = [m for m in matches if m["field_id"] == fid]
+
+        if len(field_matches) <= 1:
+            continue
+
+        # For EACH ancestor level, collect possible values
+        # e.g., Ward200 → district: [Alappuzha, Shenzhen], state: [Kerala, Guangdong], country: [India, China]
+        all_parent_contexts = [m.get("parents", {}) for m in field_matches]
+
+        for ancestor_fid in set().union(*[ctx.keys() for ctx in all_parent_contexts]):
+            if ancestor_fid in data:
+                continue  # already known, not ambiguous
+            ancestor_values = set()
+            for ctx in all_parent_contexts:
+                if ancestor_fid in ctx:
+                    ancestor_values.add(ctx[ancestor_fid])
+            if len(ancestor_values) > 1:
+                if ancestor_fid not in ambiguous:
+                    ambiguous[ancestor_fid] = list(ancestor_values)
+
+    # Also handle the direct parent case
+    for field in form["fields"]:
+        fid = field["field_id"]
+        if field.get("type") != "dropdown" or not field.get("parent_field_id"):
+            continue
+        if fid not in data:
+            continue
         parent_fid = field["parent_field_id"]
-        if parent_fid in data:
+        if parent_fid in data or parent_fid in ambiguous:
             continue
 
         matches = find_value_in_hierarchy(form, data[fid])
@@ -159,9 +206,15 @@ def resolve_and_validate(form, candidate_data):
                 "triggered_by": triggered_by,
             })
 
-    # 2. Ambiguous parent validation
+    # 2. Ambiguous parent validation + narrowing
+    # For each ambiguous parent, test which values are valid.
+    # If only ONE survives → infer it and re-validate.
     ambiguous = _get_ambiguous_parents(form, resolved)
+    narrowed = {}  # parent_fid → narrowed possible values
+
     for parent_fid, possible_values in ambiguous.items():
+        surviving_values = set(possible_values)
+
         for field in form["fields"]:
             fid = field["field_id"]
             if fid not in resolved:
@@ -176,26 +229,59 @@ def resolve_and_validate(form, candidate_data):
                 continue
 
             value = resolved[fid]
-            valid_under_any = False
+            # Test each possible parent value — keep only those that pass
+            valid_parents = set()
             for pv in possible_values:
                 test_data = {**resolved, parent_fid: pv}
                 is_valid, _ = validate_field(form, fid, value, test_data)
                 if is_valid:
-                    valid_under_any = True
-                    break
+                    valid_parents.add(pv)
 
-            if not valid_under_any:
-                parent_field = get_field(form, parent_fid)
-                parent_label = parent_field["label"] if parent_field else parent_fid
+            # Narrow: surviving = intersection with this field's valid parents
+            surviving_values &= valid_parents
+
+        narrowed[parent_fid] = surviving_values
+
+        if len(surviving_values) == 0:
+            # Invalid under ALL possibilities → conflict
+            parent_field = get_field(form, parent_fid)
+            parent_label = parent_field["label"] if parent_field else parent_fid
+            # Find which field caused the conflict
+            for field in form["fields"]:
+                fid = field["field_id"]
+                if fid not in resolved:
+                    continue
+                cond_rules = field.get("validation_rules", {}).get("conditional_rules", [])
+                if not any(r.get("if", {}).get("field") == parent_fid for r in cond_rules):
+                    continue
+                if parent_fid in resolved:
+                    continue
                 conflicts.append({
                     "field": fid,
-                    "value": value,
+                    "value": resolved[fid],
                     "reason": (
-                        f"{field['label']}={value} is invalid for all possible "
+                        f"{field['label']}={resolved[fid]} is invalid for all possible "
                         f"{parent_label} values ({', '.join(possible_values)})"
                     ),
                     "triggered_by": {"field": parent_fid, "value": ", ".join(possible_values)},
                 })
+
+        elif len(surviving_values) == 1:
+            # Exactly ONE valid parent → infer it!
+            inferred_val = surviving_values.pop()
+            resolved[parent_fid] = inferred_val
+            all_inferred[parent_fid] = inferred_val
+
+    # If we inferred new parents from narrowing, re-run fixpoint to cascade
+    newly_inferred = {k for k, v in narrowed.items() if k in all_inferred}
+    if newly_inferred:
+        for _ in range(10):
+            new_inferred = infer_parents_from_hierarchy(form, resolved)
+            fresh = {k: v for k, v in new_inferred.items() if k not in resolved}
+            if not fresh:
+                break
+            resolved.update(fresh)
+            all_inferred.update(fresh)
 
     # 3. Hierarchy consistency
     hierarchy_issues = validate_hierarchy_consistency(form, resolved)

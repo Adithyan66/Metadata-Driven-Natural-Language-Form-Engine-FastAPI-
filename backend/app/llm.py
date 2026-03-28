@@ -10,6 +10,7 @@ import json
 from langfuse.openai import OpenAI
 
 from app.hierarchy import get_field, has_options, get_valid_dropdown_values
+from app.validation import validate_field
 
 _client = None
 
@@ -54,6 +55,36 @@ def _get_form_prompt(form):
     Returns empty string if not defined.
     """
     return form.get("system_prompt", "")
+
+
+def _filter_options_by_collected(form, field_id, options, collected_data):
+    """Filter dropdown options by validating all collected fields against each option.
+
+    For each option (e.g., country=India), simulate setting it and re-validate
+    all collected fields that have conditional rules depending on this field.
+    If any collected field fails, exclude the option.
+    """
+    if not options or not collected_data:
+        return options
+
+    valid_options = []
+    for opt in options:
+        test_data = {**collected_data, field_id: opt}
+        option_valid = True
+        for field in form["fields"]:
+            fid = field["field_id"]
+            if fid == field_id or fid not in collected_data:
+                continue
+            cond_rules = field.get("validation_rules", {}).get("conditional_rules", [])
+            if not any(r.get("if", {}).get("field") == field_id for r in cond_rules):
+                continue
+            is_valid, _ = validate_field(form, fid, collected_data[fid], test_data)
+            if not is_valid:
+                option_valid = False
+                break
+        if option_valid:
+            valid_options.append(opt)
+    return valid_options
 
 
 # === Extraction ===
@@ -215,6 +246,8 @@ def call_openai_next_question(form, collected_data, missing_fields, last_action=
             if has_options(field):
                 valid_opts = get_valid_dropdown_values(form, fid, collected_data)
                 if valid_opts:
+                    valid_opts = _filter_options_by_collected(form, fid, valid_opts, collected_data)
+                if valid_opts:
                     info += f" [options: {', '.join(valid_opts)}]"
                 else:
                     continue
@@ -273,7 +306,7 @@ def call_openai_next_question(form, collected_data, missing_fields, last_action=
         if parts:
             action_context = "\n\nLAST ACTION:\n" + "\n".join(f"- {p}" for p in parts)
 
-    system_prompt = f"""You are a warm, professional form assistant.
+    system_prompt = f"""You are a warm , short , professional form assistant.
 
 Form: {form['title']}
 {f"FORM CONTEXT: {form_prompt}" if form_prompt else ""}
@@ -285,6 +318,8 @@ Missing fields (ask the FIRST one that makes sense):
 {action_context}
 
 {QUESTION_RULES}
+
+IMPORTANT: The options listed above for each field are already filtered and validated. Present them EXACTLY as shown — do NOT add or remove any options. They are the only valid choices.
 
 Return ONLY the message text."""
 
@@ -301,38 +336,69 @@ Return ONLY the message text."""
 
 # === Error Message ===
 
-def call_openai_error_message(form, field_errors, user_message, collected_data):
-    """Generate a user-friendly error message with proper context per error type."""
+def call_openai_error_message(form, field_errors, user_message, collected_data, missing_fields=None, last_action=None):
+    """Generate a unified response: explain rejections + acknowledge stored fields + ask next question."""
     form_prompt = _get_form_prompt(form)
 
-    # Enrich errors with field labels and valid options for better LLM context
+    # Enrich errors with field labels and valid options
     enriched_errors = []
     for err in field_errors:
         enriched = dict(err)
         fid = err.get("field_id", "")
-
-        # Add field label
-        field = get_field(form, fid) if fid and fid != "hierarchy" else None
+        field = get_field(form, fid) if fid and fid not in ("hierarchy", "dependency_note", "batch_note") else None
         if field:
             enriched["field_label"] = field.get("label", fid)
-
-            # Add valid options if it's an options field
             if has_options(field):
                 valid_opts = get_valid_dropdown_values(form, fid, collected_data)
                 if valid_opts:
                     enriched["valid_options"] = valid_opts
-
-            # Add parent info for hierarchy fields
             if field.get("parent_field_id"):
                 parent = get_field(form, field["parent_field_id"])
                 parent_val = collected_data.get(field["parent_field_id"])
                 if parent and parent_val:
                     enriched["parent_field"] = parent.get("label", field["parent_field_id"])
                     enriched["parent_value"] = parent_val
-
         enriched_errors.append(enriched)
 
-    system_prompt = f"""You are a warm, helpful form assistant. The user provided data that was rejected.
+    # Build next question context
+    next_field_info = ""
+    if missing_fields:
+        for fid in missing_fields:
+            field = get_field(form, fid)
+            if field:
+                info = f"{field['label']} (type: {field['type']})"
+                if has_options(field):
+                    valid_opts = get_valid_dropdown_values(form, fid, collected_data)
+                    if valid_opts:
+                        valid_opts = _filter_options_by_collected(form, fid, valid_opts, collected_data)
+                    if valid_opts:
+                        info += f" — choices: {', '.join(valid_opts)}"
+                    else:
+                        continue
+                next_field_info = info
+                break
+        if next_field_info:
+            next_field_info = f"\n\nNEXT FIELD TO ASK: {next_field_info}"
+
+    # Build stored/acknowledged context
+    stored_context = ""
+    if last_action:
+        parts = []
+        if last_action.get("stored"):
+            items = ", ".join(f"{k}='{v}'" for k, v in last_action["stored"].items())
+            parts.append(f"Successfully stored: {items}")
+        if last_action.get("inferred"):
+            items = ", ".join(f"{k}='{v}'" for k, v in last_action["inferred"].items())
+            parts.append(f"Auto-inferred: {items}")
+        if last_action.get("deleted"):
+            parts.append(f"Deleted: {', '.join(last_action['deleted'])}")
+        if last_action.get("rejected"):
+            for r in last_action["rejected"]:
+                parts.append(f"Rejected {r['field']}='{r['value']}': {r['reason']}")
+        if parts:
+            stored_context = "\n\nSUCCESSFULLY PROCESSED:\n" + "\n".join(f"- {p}" for p in parts)
+
+    system_prompt = f"""You are a warm, helpful form assistant. The user provided data, some of which was rejected.
 
 Form: {form['title']}
 {f"FORM CONTEXT: {form_prompt}" if form_prompt else ""}
@@ -340,38 +406,33 @@ Form: {form['title']}
 Already collected: {json.dumps(collected_data)}
 User said: "{user_message}"
 
-Rejected fields with details:
+Rejected fields:
 {json.dumps(enriched_errors, indent=2)}
+{stored_context}
+{next_field_info}
 
-GENERATE A RESPONSE following these rules:
+GENERATE A SINGLE UNIFIED RESPONSE with this structure:
 
-1. ACKNOWLEDGE the user's intent first ("I see you're trying to set...")
-2. EXPLAIN the rejection based on error type:
+1. ACKNOWLEDGE stored fields (if any were successfully saved)
 
-   A. HIERARCHY CONFLICT (error mentions "does not belong to"):
-      - Explain that the value doesn't match their current parent selection
-      - Use the parent_field and parent_value to explain: "Since you selected [parent], the available [child] options are: [list]"
-      - Show valid_options if provided
+2. EXPLAIN REJECTIONS:
+   - If multiple rejections are CAUSALLY LINKED (e.g., country can't change so age rule doesn't apply):
+     → Explain the ROOT CAUSE first, then explain the dependent failure
+     → Example: "I can't switch to Japan because your State, District and Ward belong to India.
+       Since the country stays as India, age 15 doesn't meet India's minimum of 18 either."
+   - If rejections are independent, explain each briefly
+   - Always suggest HOW to fix it (e.g., "say 'delete state' first, then change country")
 
-   B. FORMAT / VALIDATION ERROR (error mentions "must be", "must contain"):
-      - State the requirement clearly using the error message
-      - Give a hint: "Please provide a value that meets: [requirement]"
+3. ASK NEXT QUESTION (if NEXT FIELD TO ASK is provided):
+   - After a line break, ask for the next field naturally
+   - The choices shown in NEXT FIELD TO ASK are already validated — present them EXACTLY as listed, do NOT add or remove any
 
-   C. CONDITIONAL RULE VIOLATION (error mentions "due to"):
-      - Explain the dependency: "Because you selected [trigger], [field] needs to be [requirement]"
-
-   D. DUPLICATE WITHOUT UPDATE (error mentions "already provided"):
-      - Tell user how to update: "say 'change [field] to [value]'"
-
-3. If valid_options are listed in the error → mention them naturally
-4. Keep it concise — max 3 sentences per error
-5. If multiple errors, address each briefly
-
-LANGUAGE (CRITICAL):
-- NEVER say "dropdown", "field_id", "valid_options", "hierarchy", "metadata", "parent_field_id"
-- Use field labels only (e.g., "Country", "District" — not "country", "district")
-- Sound like a real person helping, not a system error
-- Be encouraging, not blaming"""
+LANGUAGE:
+- NEVER use: "dropdown", "field_id", "valid_options", "hierarchy", "metadata", "Phase 1", "Phase 3"
+- Use field labels only
+- Sound like a real person, not a system
+- Be encouraging and helpful
+- Keep total response under 5 sentences"""
 
     response = _get_client().chat.completions.create(
         model="gpt-4o-mini",
@@ -461,57 +522,59 @@ Return ONLY the message text."""
 # === Query Answer ===
 
 def call_openai_answer_query(query, form, collected_data):
-    """Answer a user's question about the form, fields, options, or their data."""
-    fields_context = _build_fields_context(form, collected_data)
-    form_prompt = _get_form_prompt(form)
-
-    # Pre-compute valid options for ALL option-based fields given current collected_data
-    # This is the SOURCE OF TRUTH — the LLM must use these, not traverse the hierarchy itself
-    computed_options = []
-    for f in form["fields"]:
-        if has_options(f):
-            fid = f["field_id"]
-            label = f.get("label", fid)
-            valid_opts = get_valid_dropdown_values(form, fid, collected_data)
-            if valid_opts is None:
-                computed_options.append(f"- {label}: cannot determine yet (parent not selected)")
-            elif len(valid_opts) == 0:
-                parent_fid = f.get("parent_field_id")
-                if parent_fid and parent_fid in collected_data:
-                    parent_field = get_field(form, parent_fid)
-                    parent_label = parent_field["label"] if parent_field else parent_fid
-                    computed_options.append(f"- {label}: NONE available under {parent_label}='{collected_data[parent_fid]}'")
-                else:
-                    computed_options.append(f"- {label}: no options available")
-            else:
-                computed_options.append(f"- {label}: {', '.join(valid_opts)}")
+    """Answer a user's question about the form using the full form definition."""
+    query_prompt = form.get("query_prompt", "")
 
     system_prompt = f"""You are a helpful form assistant answering a user's question.
 
-Form: {form['title']}
-{f"FORM CONTEXT: {form_prompt}" if form_prompt else ""}
+FULL FORM DEFINITION:
+{json.dumps(form, indent=2)}
 
-Fields:
-{fields_context}
+ALREADY COLLECTED DATA:
+{json.dumps(collected_data, indent=2)}
 
-AVAILABLE OPTIONS (pre-computed based on current selections — this is the SOURCE OF TRUTH):
-{chr(10).join(computed_options) if computed_options else "None"}
+{f"FORM-SPECIFIC QUERY INSTRUCTIONS:{chr(10)}{query_prompt}" if query_prompt else ""}
 
-Currently collected data: {json.dumps(collected_data)}
+HOW TO ANSWER — follow these steps IN ORDER:
 
-RULES:
-1. Answer ONLY based on the AVAILABLE OPTIONS and collected data above.
-2. For questions about choices/options:
-   - Use ONLY the pre-computed AVAILABLE OPTIONS above
-   - If it says "NONE available" → tell the user there are no options for that field
-   - Do NOT traverse or guess from any other data
-3. If question is about collected data → format as a nice summary.
-4. Keep answer concise, friendly, accurate.
-5. Do NOT make up data.
-6. LANGUAGE (CRITICAL):
-   - NEVER use technical terms like "dropdown", "field_id", "valid_options", "hierarchy", "metadata", "pre-computed"
-   - Speak naturally: "you can choose from" / "there are no wards available for Chennai"
-   - Sound like a real person
+STEP 1: IDENTIFY ALL COLLECTED FIELDS THAT CONSTRAIN THE ANSWER
+   - Before doing anything else, list EVERY collected field that is related to the question
+   - Related means: it is a parent, child, grandchild, or any ancestor/descendant in the hierarchy
+   - Also include fields connected through validation rules (e.g., age constrains country via conditional_rules)
+
+STEP 2: EXHAUSTIVE TRAVERSAL
+   - Walk through EVERY branch of the form definition to collect ALL possible values for the asked field
+   - Dropdown fields with "dropdown_options" contain nested "children" that define parent-child relationships
+   - Walk through "dropdown_options" → "children" → "options" recursively through ALL branches
+   - Do NOT stop at the first match — check every branch
+
+STEP 3: FILTER USING EVERY COLLECTED FIELD (MOST IMPORTANT STEP)
+   - For EACH value found in Step 2, verify it is compatible with ALL constraining fields from Step 1
+   - A value is compatible ONLY if it appears in a branch that contains ALL the collected values
+   - Filter in BOTH directions:
+     PARENT → CHILD: if country=India is collected, only keep states that are under India
+     CHILD → PARENT: if district=Mangalore is collected, only keep states where Mangalore appears as a child
+   - Apply ALL constraints together. If country=India AND district=Mangalore are both collected:
+     → First: only states under India (Kerala, Tamil Nadu, Karnataka)
+     → Then: of those, only states that contain Mangalore (Karnataka)
+     → Final answer: Karnataka only
+   - A value that fails ANY constraint is excluded
+
+STEP 4: APPLY VALIDATION RULES
+   - Check "conditional_rules" in "validation_rules" — these change constraints based on other fields
+   - Example: if age=16 is collected and user asks "which countries", exclude countries where minimum age > 16
+
+STEP 5: FORM YOUR ANSWER
+   - Present only the values that survived ALL filters
+   - If only one value remains, state it clearly
+   - If question is about collected data, format as a nice summary
+   - When asked "how many X", count accurately and list them
+
+LANGUAGE (CRITICAL):
+- NEVER use technical terms: "dropdown", "field_id", "dropdown_options", "children", "parent_field_id", "conditional_rules", "validation_rules", "hierarchy", "metadata", "JSON"
+- Speak naturally: "you can choose from", "there are X available", "since your district is Mangalore, the only state available is Karnataka"
+- Sound like a real person, not a system
+- Keep answers concise but complete
 
 Return ONLY the answer text."""
 

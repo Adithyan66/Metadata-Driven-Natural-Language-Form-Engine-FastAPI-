@@ -67,6 +67,8 @@ def extract(state: FormState) -> dict:
 def parse_intent(state: FormState) -> dict:
     """Separate metadata keys (_intent, _delete, _query, _uncertain) from extracted data."""
     extracted = dict(state["extracted"])
+    collected_data = state["collected_data"]
+    user_msg = state["user_message"].lower()
 
     is_uncertain = extracted.pop("_uncertain", False)
     intent = extracted.pop("_intent", "normal")
@@ -77,6 +79,22 @@ def parse_intent(state: FormState) -> dict:
         delete_fields = [delete_fields] if delete_fields else []
 
     query = extracted.pop("_query", None)
+
+    # Auto-detect update intent if LLM missed it
+    # If user message has update keywords AND extracted fields overlap with collected_data
+    if not is_update and extracted:
+        update_keywords = ["change", "chnage", "update", "set", "modify", "switch", "replace", "make"]
+        has_update_keyword = any(kw in user_msg for kw in update_keywords)
+        # Also detect if extracted fields have DIFFERENT values than collected
+        data_fields = {fid for fid in extracted if fid not in ("_uncertain", "_intent", "_delete", "_query")}
+        has_changed_values = any(
+            fid in collected_data and str(collected_data[fid]).lower() != str(extracted[fid]).lower()
+            for fid in data_fields
+        )
+
+        if has_update_keyword and has_changed_values:
+            is_update = True
+            intent = "update"
 
     return {
         "extracted": extracted,
@@ -438,9 +456,39 @@ def handle_conflicts(state: FormState) -> dict:
             collected_data.update(partial_inferred)
             auto_filled.update(partial_inferred)
 
-    # Build errors
+    # Build errors with causal chain context
     all_errors = [{"field_id": c["field"], "value": c.get("value"), "error": c["reason"]} for c in all_conflicts]
     all_errors.extend(invalid_fields)
+
+    # Detect causal chains: if field A was rejected in Phase 1 (invalid_fields)
+    # and field B was rejected in Phase 3 (all_conflicts) because it depended on A,
+    # add a note explaining the dependency
+    rejected_in_phase1 = {inv["field_id"] for inv in invalid_fields}
+    rejected_in_phase3 = {c["field"] for c in all_conflicts if c.get("field")}
+    pending_field_ids = set(pending_data.keys())
+
+    # Fields that were in pending but got rejected by resolve_and_validate
+    # AND whose rejection is caused by another field that failed in Phase 1
+    for c in all_conflicts:
+        triggered = c.get("triggered_by", {}).get("field")
+        if triggered and triggered in pending_field_ids and triggered in rejected_in_phase1:
+            c_field = get_field(form, c["field"])
+            t_field = get_field(form, triggered)
+            if c_field and t_field:
+                all_errors.append({
+                    "field_id": "dependency_note",
+                    "error": (
+                        f"{c_field['label']} was also rejected because it depended on "
+                        f"{t_field['label']} being changed, which itself couldn't be applied. "
+                        f"Fix {t_field['label']} first, then {c_field['label']} can be updated."
+                    ),
+                })
+
+    # If both fields were in the same batch and one blocks the other,
+    # add a note about the batch relationship
+    if len(rejected_in_phase1) > 0 and len(all_conflicts) > 0:
+        batch_note = "Note: Some values were rejected because they depend on other changes in the same request that couldn't be applied. Resolve the blocking issue first."
+        all_errors.append({"field_id": "batch_note", "error": batch_note})
 
     conflict_suggestions = build_conflict_suggestions(form, all_conflicts, resolved_data) if all_conflicts else []
     missing = get_missing_fields(form, collected_data)
@@ -459,12 +507,12 @@ def handle_conflicts(state: FormState) -> dict:
     if dropped_fields:
         last_action["rejected"] = dropped_fields
 
-    error_msg = call_openai_error_message(form, all_errors, state["user_message"], collected_data)
-    if missing:
-        next_q = call_openai_next_question(form, collected_data, missing, last_action=last_action if last_action else None)
-        response_msg = _with_query(query_answer, error_msg + "\n\n" + next_q)
-    else:
-        response_msg = _with_query(query_answer, error_msg)
+    error_msg = call_openai_error_message(
+        form, all_errors, state["user_message"], collected_data,
+        missing_fields=missing,
+        last_action=last_action if last_action else None,
+    )
+    response_msg = _with_query(query_answer, error_msg)
 
     return {
         "collected_data": collected_data,
