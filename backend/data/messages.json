@@ -1,22 +1,14 @@
 [
   {
     "role": "assistant",
-    "content": "Got it! \n\nHowever, I couldn't find a valid entry for \"ward 200.\" You can choose from Ward1, Ward2, Ward6, or Ward100 instead.\n\nCould you please share your full name?"
+    "content": "Got it! \n\nI noticed you didn\u2019t provide a full name, which is required. Please share your full legal name so we can proceed with your bank account opening."
   },
   {
     "role": "user",
-    "content": "adhi 24 ward200 adhi@gmail.com 8565452565 fixedtype"
+    "content": "adithyan 10 adhi@hid.dih ward200 fixed"
   },
   {
     "role": "assistant",
-    "content": "Got it! I've saved your details, including your account type as a Fixed Deposit, and inferred your country as China, state as Guangdong, and district as Shenzhen.\n\nNow, could you please set a password for your account? It should be at least 6 characters long, include one uppercase letter, and have one special symbol."
-  },
-  {
-    "role": "user",
-    "content": "chnage age to 15"
-  },
-  {
-    "role": "assistant",
-    "content": "I see you're trying to set your age to 15. However, since you selected China, the minimum age requirement is 16. Please provide a value that meets this requirement. \n\nIf you need any further assistance or have more changes to make, feel free to let me know!\n\nGot it! Your details have been noted, including your account type as Fixed Deposit and your location in Shenzhen, Guangdong.\n\nHowever, the password hasn't been set yet. Please remember that it needs to be at least 6 characters long, contain at least one uppercase letter, and include one special symbol.\n\nCould you please set a password for your account?"
+    "content": "Great! I've noted your details: full name, age, email, ward, and account type.\n\nHowever, I see your age is currently set to 10, which doesn't meet the minimum requirement for opening a bank account in India. You must be at least 18 years old. \n\nCould you please provide your phone number?"
   }
 ]

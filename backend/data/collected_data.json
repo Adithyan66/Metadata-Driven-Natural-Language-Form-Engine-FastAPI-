@@ -1,11 +1,7 @@
 {
-  "full_name": "adhi",
-  "age": 24,
-  "email": "adhi@gmail.com",
-  "phone": "8565452565",
+  "full_name": "adithyan",
+  "age": 10,
+  "email": "adhi@hid.dih",
   "ward": "Ward200",
-  "account_type": "Fixed Deposit",
-  "country": "China",
-  "state": "Guangdong",
-  "district": "Shenzhen"
+  "account_type": "Fixed Deposit"
 }
