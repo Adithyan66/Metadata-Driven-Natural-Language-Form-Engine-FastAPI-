@@ -25,14 +25,18 @@ def route_after_sanitize(state: FormState) -> str:
     """Empty extraction → respond_empty, else → validate_fields."""
     extracted = state["extracted"]
     if any(v is not None and v != "" for v in extracted.values()):
+        print("\n    [route] after sanitize → validate_fields")
         return "validate_fields"
+    print("\n    [route] after sanitize → respond_empty")
     return "respond_empty"
 
 
 def route_after_resolve(state: FormState) -> str:
     """Conflicts → handle_conflicts, else → commit."""
     if state["all_conflicts"] or state["invalid_fields"]:
+        print("\n    [route] after resolve → handle_conflicts")
         return "handle_conflicts"
+    print("\n    [route] after resolve → commit")
     return "commit"
 
 

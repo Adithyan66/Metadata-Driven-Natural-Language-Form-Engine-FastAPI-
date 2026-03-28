@@ -8,6 +8,7 @@ from app.hierarchy import (
 )
 from app.validation import (
     validate_field,
+    resolve_field_state,
     get_missing_fields,
     get_currently_asking,
     build_conflict_suggestions,
@@ -34,6 +35,7 @@ def _with_query(query_answer, msg):
 
 def load_state(state: FormState) -> dict:
     """Determine currently_asking field."""
+    print("\n>>> [1/12] load_state")
     asking_fid, asking_field = get_currently_asking(state["form"], state["collected_data"])
     return {
         "currently_asking": asking_fid,
@@ -43,6 +45,8 @@ def load_state(state: FormState) -> dict:
 
 def extract(state: FormState) -> dict:
     """Run LLM extraction or handle sensitive fields."""
+    print("\n>>> [2/12] extract")
+    print(f"    user_message: {state['user_message']!r}")
     form = state["form"]
     collected_data = state["collected_data"]
     currently_asking = state["currently_asking"]
@@ -66,6 +70,8 @@ def extract(state: FormState) -> dict:
 
 def parse_intent(state: FormState) -> dict:
     """Separate metadata keys (_intent, _delete, _query, _uncertain) from extracted data."""
+    print("\n>>> [3/12] parse_intent")
+    print(f"    extracted: {state['extracted']}")
     extracted = dict(state["extracted"])
     collected_data = state["collected_data"]
     user_msg = state["user_message"].lower()
@@ -108,6 +114,8 @@ def parse_intent(state: FormState) -> dict:
 
 def process_query(state: FormState) -> dict:
     """Answer user's question if _query is present."""
+    print("\n>>> [4/12] process_query")
+    print(f"    query: {state['query']!r}")
     query = state["query"]
     if not query:
         return {"query_answer": None}
@@ -116,6 +124,8 @@ def process_query(state: FormState) -> dict:
 
 def process_deletes(state: FormState) -> dict:
     """Cascade delete fields + re-validate."""
+    print("\n>>> [5/12] process_deletes")
+    print(f"    delete_fields: {state['delete_fields']}")
     delete_fields = state["delete_fields"]
     if not delete_fields:
         return {"deleted_labels": [], "collected_data": state["collected_data"]}
@@ -149,6 +159,8 @@ def process_deletes(state: FormState) -> dict:
 
 def sanitize(state: FormState) -> dict:
     """Reject hallucinated values via source verification. Tracks dropped values with reasons."""
+    print("\n>>> [6/12] sanitize")
+    print(f"    extracted: {state['extracted']}")
     extracted = state["extracted"]
     form = state["form"]
     collected_data = state["collected_data"]
@@ -264,6 +276,7 @@ def sanitize(state: FormState) -> dict:
 
 def respond_empty(state: FormState) -> dict:
     """Handle empty extraction: query-only, delete-only, or nudge."""
+    print("\n>>> [7/12] respond_empty (no extracted values)")
     form = state["form"]
     collected_data = state["collected_data"]
     query_answer = state["query_answer"]
@@ -305,6 +318,8 @@ def respond_empty(state: FormState) -> dict:
 
 def validate_fields(state: FormState) -> dict:
     """Per-field validation, build pending_data."""
+    print("\n>>> [8/12] validate_fields")
+    print(f"    extracted: {state['extracted']}")
     form = state["form"]
     collected_data = state["collected_data"]
     extracted = state["extracted"]
@@ -333,6 +348,20 @@ def validate_fields(state: FormState) -> dict:
                 "error": f"You already provided {label} as '{existing}'. If you want to change it, say 'change {label.lower()} to {value}'.",
             })
             continue
+
+        # Inactive field check — reject early if field isn't active for current data
+        field_def = get_field(form, field_id)
+        if field_def:
+            running_context = {**collected_data, **{k: v for k, v in extracted.items() if k != field_id}}
+            field_state = resolve_field_state(field_def, running_context)
+            if not field_state["active"]:
+                label = field_def.get("label", field_id)
+                invalid_fields.append({
+                    "field_id": field_id,
+                    "value": value,
+                    "error": f"{label} is not applicable for your current selections.",
+                })
+                continue
 
         # Validate — build running_data with the full intended state:
         # 1. Start with collected_data + already-validated pending_data
@@ -372,6 +401,9 @@ def validate_fields(state: FormState) -> dict:
 
 def build_candidate(state: FormState) -> dict:
     """Build candidate state + auto-fill single-option fields."""
+    print("\n>>> [9/12] build_candidate")
+    print(f"    pending_data: {state['pending_data']}")
+    print(f"    invalid_fields: {state['invalid_fields']}")
     form = state["form"]
     collected_data = state["collected_data"]
     pending_data = state["pending_data"]
@@ -409,20 +441,38 @@ def build_candidate(state: FormState) -> dict:
 
 def resolve_validate(state: FormState) -> dict:
     """Fixpoint resolve + validate atomically."""
+    print("\n>>> [10/12] resolve_validate")
+    print(f"    candidate_data: {state['candidate_data']}")
     auto_filled = dict(state["auto_filled"])
-    resolved_data, inferred, all_conflicts, _ = resolve_and_validate(state["form"], state["candidate_data"])
+    resolved_data, inferred, all_conflicts, removed_fields = resolve_and_validate(state["form"], state["candidate_data"])
     auto_filled.update(inferred)
+
+    # Build labels for removed (inactive) fields that user tried to provide
+    form = state["form"]
+    pending_data = state["pending_data"]
+    removed_labels = []
+    for rfid in removed_fields:
+        if rfid in pending_data:
+            field = get_field(form, rfid)
+            label = field["label"] if field else rfid
+            removed_labels.append({"field": label, "value": pending_data[rfid], "reason": f"{label} is not applicable for your current selections"})
+    if removed_labels:
+        print(f"    removed (inactive) fields user provided: {removed_labels}")
 
     return {
         "resolved_data": resolved_data,
         "inferred": inferred,
         "all_conflicts": all_conflicts,
         "auto_filled": auto_filled,
+        "removed_fields": removed_labels,
     }
 
 
 def handle_conflicts(state: FormState) -> dict:
     """Partial commit clean fields, reject conflicting ones, generate error response."""
+    print("\n>>> [11/12] handle_conflicts")
+    print(f"    all_conflicts: {state['all_conflicts']}")
+    print(f"    invalid_fields: {state['invalid_fields']}")
     form = state["form"]
     collected_data = dict(state["collected_data"])
     pending_data = state["pending_data"]
@@ -456,8 +506,15 @@ def handle_conflicts(state: FormState) -> dict:
             collected_data.update(partial_inferred)
             auto_filled.update(partial_inferred)
 
-    # Build errors with causal chain context
-    all_errors = [{"field_id": c["field"], "value": c.get("value"), "error": c["reason"]} for c in all_conflicts]
+    # Build errors with causal chain context (include ambiguous_source if present)
+    all_errors = []
+    for c in all_conflicts:
+        err = {"field_id": c["field"], "value": c.get("value"), "error": c["reason"]}
+        if c.get("ambiguous_source"):
+            err["ambiguous_source"] = c["ambiguous_source"]
+        if c.get("triggered_by"):
+            err["triggered_by"] = c["triggered_by"]
+        all_errors.append(err)
     all_errors.extend(invalid_fields)
 
     # Detect causal chains: if field A was rejected in Phase 1 (invalid_fields)
@@ -503,13 +560,20 @@ def handle_conflicts(state: FormState) -> dict:
         last_action["inferred"] = inferred_clean
     if deleted_labels:
         last_action["deleted"] = deleted_labels
+    rejected = []
     dropped_fields = state.get("dropped_fields", [])
     if dropped_fields:
-        last_action["rejected"] = dropped_fields
+        rejected.extend(dropped_fields)
+    removed_fields = state.get("removed_fields", [])
+    if removed_fields:
+        rejected.extend(removed_fields)
+    if rejected:
+        last_action["rejected"] = rejected
 
+    # Don't ask next question when there are conflicts — user needs to fix the conflict first
     error_msg = call_openai_error_message(
         form, all_errors, state["user_message"], collected_data,
-        missing_fields=missing,
+        missing_fields=None,
         last_action=last_action if last_action else None,
     )
     response_msg = _with_query(query_answer, error_msg)
@@ -525,6 +589,10 @@ def handle_conflicts(state: FormState) -> dict:
 
 def commit(state: FormState) -> dict:
     """Commit resolved data + generate next question."""
+    print("\n>>> [12/12] commit")
+    print(f"    resolved_data: {state['resolved_data']}")
+    print(f"    inferred: {state['inferred']}")
+    print(f"    auto_filled: {state['auto_filled']}")
     form = state["form"]
     resolved_data = state["resolved_data"]
     pending_data = state["pending_data"]
@@ -563,10 +631,16 @@ def commit(state: FormState) -> dict:
     if currently_asking and currently_asking in missing and extracted:
         last_action["unanswered_field"] = currently_asking
 
-    # Include dropped fields so LLM can acknowledge rejected values
+    # Include dropped fields + removed inactive fields so LLM can acknowledge rejected values
+    rejected = []
     dropped_fields = state.get("dropped_fields", [])
     if dropped_fields:
-        last_action["rejected"] = dropped_fields
+        rejected.extend(dropped_fields)
+    removed_fields = state.get("removed_fields", [])
+    if removed_fields:
+        rejected.extend(removed_fields)
+    if rejected:
+        last_action["rejected"] = rejected
 
     response_msg = _with_query(query_answer, call_openai_next_question(form, collected_data, missing, last_action=last_action))
 

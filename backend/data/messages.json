@@ -1,38 +1,14 @@
 [
   {
     "role": "assistant",
-    "content": "Got it! \n\nI noticed that \"ward200\" was normalized to \"Ward200\" for the ward field. \n\nNow, could you please tell me your full legal name?"
+    "content": "Got it! \n\nCould you please provide your full name?"
   },
   {
     "role": "user",
-    "content": "mangalofe"
+    "content": "MasterCard World"
   },
   {
     "role": "assistant",
-    "content": "Thank you for your input! However, \"mangalofe\" doesn't meet the minimum length requirement of 2 characters for a full name. Please provide your full legal name, ensuring it's at least two characters long. If you have any questions or need assistance, feel free to ask!"
-  },
-  {
-    "role": "user",
-    "content": "mangalore"
-  },
-  {
-    "role": "assistant",
-    "content": "Noted! I have saved your district as Mangalore and inferred your country as India.\n\nCould you please provide your full legal name?"
-  },
-  {
-    "role": "user",
-    "content": "what all are tge possible states that have"
-  },
-  {
-    "role": "assistant",
-    "content": "Since you have selected India as your country, here are the possible states you can choose from:\n\n1. Kerala\n2. Tamil Nadu\n3. Karnataka\n\nIf you need more information or would like to proceed with any specific state, just let me know!\n\nGreat! I\u2019ve noted that your district is Mangalore and your country is India.\n\nCould you please provide your full legal name?"
-  },
-  {
-    "role": "user",
-    "content": "what all are tge possible states that have"
-  },
-  {
-    "role": "assistant",
-    "content": "Since your district is Mangalore, the only state available is Karnataka.\n\nGot it! I have noted that your district is Mangalore and your country is India. \n\nNow, could you please provide your full legal name?"
+    "content": "Got it! I've noted that you will be using a MasterCard World credit card.\n\nCould you please provide your full name?"
   }
 ]

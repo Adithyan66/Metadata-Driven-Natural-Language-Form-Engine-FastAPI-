@@ -30,6 +30,7 @@ class FormState(TypedDict):
     all_conflicts: list
     clean_fields: dict
     dropped_fields: list  # values rejected by sanitizer with reasons
+    removed_fields: list  # fields removed because they became inactive
 
     # Output
     response_msg: str

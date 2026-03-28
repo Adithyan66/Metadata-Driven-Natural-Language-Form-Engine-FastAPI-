@@ -95,6 +95,7 @@ EXTRACTION_RULES = """RULES:
    These patterns ALWAYS map to their field, REGARDLESS of which field is currently being asked:
    - Email pattern (contains @ and domain) → email field
    - Phone pattern (7-15 digits, optional +) → phone field
+   - Dropdown close match: if input closely matches a valid_option of ANY dropdown field (e.g., "saving" ≈ "Savings", "curren" ≈ "Current"), map to THAT dropdown field
    - Known structured patterns defined in FORM CONTEXT (e.g., ward patterns) → respective field
    If input matches a high-confidence pattern, map it immediately. Do NOT force it to the currently asking field.
 
@@ -103,12 +104,13 @@ EXTRACTION_RULES = """RULES:
    - Choose the field with the STRONGEST semantic + type match
    - Currently asking field gets priority ONLY when match strength is equal
    - Example: asking for "name", user says "adhi@gmail.com" → email (pattern match wins)
+   - Example: asking for "name", user says "saving" → account_type="Savings" (dropdown fuzzy match wins over text field)
    - Example: asking for "name", user says "adhi" → full_name (semantic match, fits asked field)
 
 3. TYPE MATCH (STRICT):
    - number → must be numeric (e.g., 25)
    - text → must be meaningful text
-   - dropdown → must be one of valid_options (allow fuzzy: "kerla" → "Kerala")
+   - dropdown → must be one of valid_options (allow fuzzy: "kerla" → "Kerala", "saving" → "Savings")
 
 4. SEMANTIC MATCH:
    - Assign value only to the field it logically belongs to
@@ -160,6 +162,7 @@ Return ONLY a JSON object. No explanation."""
 
 def call_openai_extract(user_message, form, collected_data, currently_asking=None, currently_asking_field=None):
     """Extract field values from user message."""
+    print(f"    [llm] call_openai_extract (currently_asking={currently_asking})")
     fields_context = _build_fields_context(form, collected_data)
     form_prompt = _get_form_prompt(form)
     
@@ -236,8 +239,9 @@ LANGUAGE (CRITICAL):
 
 def call_openai_next_question(form, collected_data, missing_fields, last_action=None):
     """Generate the next question to ask the user."""
-    form_prompt = _get_form_prompt(form)
-
+    print(f"    [llm] call_openai_next_question")
+    print(f"    [llm]   missing_fields: {missing_fields}")
+    print(f"    [llm]   last_action: {last_action}")
     fields_info = []
     for fid in missing_fields:
         field = get_field(form, fid)
@@ -309,7 +313,6 @@ def call_openai_next_question(form, collected_data, missing_fields, last_action=
     system_prompt = f"""You are a warm , short , professional form assistant.
 
 Form: {form['title']}
-{f"FORM CONTEXT: {form_prompt}" if form_prompt else ""}
 
 Already collected: {json.dumps(collected_data)}
 
@@ -319,7 +322,10 @@ Missing fields (ask the FIRST one that makes sense):
 
 {QUESTION_RULES}
 
-IMPORTANT: The options listed above for each field are already filtered and validated. Present them EXACTLY as shown — do NOT add or remove any options. They are the only valid choices.
+IMPORTANT:
+- The options listed above for each field are already filtered and validated. Present them EXACTLY as shown — do NOT add or remove any options. They are the only valid choices.
+- Do NOT fabricate or invent rejection messages. If LAST ACTION does not contain any REJECTED items, do NOT say anything was rejected or invalid. All stored values are already validated and correct — do not question them.
+- If a field was successfully stored (in LAST ACTION "stored" or in "Already collected"), it passed all validation. Do NOT warn the user about it.
 
 Return ONLY the message text."""
 
@@ -338,7 +344,9 @@ Return ONLY the message text."""
 
 def call_openai_error_message(form, field_errors, user_message, collected_data, missing_fields=None, last_action=None):
     """Generate a unified response: explain rejections + acknowledge stored fields + ask next question."""
-    form_prompt = _get_form_prompt(form)
+    print(f"    [llm] call_openai_error_message")
+    print(f"    [llm]   field_errors: {field_errors}")
+    print(f"    [llm]   last_action: {last_action}")
 
     # Enrich errors with field labels and valid options
     enriched_errors = []
@@ -398,10 +406,9 @@ def call_openai_error_message(form, field_errors, user_message, collected_data, 
         if parts:
             stored_context = "\n\nSUCCESSFULLY PROCESSED:\n" + "\n".join(f"- {p}" for p in parts)
 
-    system_prompt = f"""You are a warm, helpful form assistant. The user provided data, some of which was rejected.
+    system_prompt = f"""You are a friendly, concise form assistant. The user provided data, some of which was rejected.
 
 Form: {form['title']}
-{f"FORM CONTEXT: {form_prompt}" if form_prompt else ""}
 
 Already collected: {json.dumps(collected_data)}
 User said: "{user_message}"
@@ -413,26 +420,28 @@ Rejected fields:
 
 GENERATE A SINGLE UNIFIED RESPONSE with this structure:
 
-1. ACKNOWLEDGE stored fields (if any were successfully saved)
+1. ACKNOWLEDGE stored fields (if any were successfully saved) — one short sentence
 
 2. EXPLAIN REJECTIONS:
-   - If multiple rejections are CAUSALLY LINKED (e.g., country can't change so age rule doesn't apply):
-     → Explain the ROOT CAUSE first, then explain the dependent failure
-     → Example: "I can't switch to Japan because your State, District and Ward belong to India.
-       Since the country stays as India, age 15 doesn't meet India's minimum of 18 either."
+   - If a rejected field has "ambiguous_source", ALWAYS mention it first — this is the field that determined the possible values.
+     Example: if ambiguous_source is Ward=Ward200 and triggered_by is Country=India,China:
+     → Say "Ward200 belongs to India or China" FIRST, then explain the validation failure for each
+   - If multiple rejections are CAUSALLY LINKED, explain the ROOT CAUSE first, then dependent failures
    - If rejections are independent, explain each briefly
-   - Always suggest HOW to fix it (e.g., "say 'delete state' first, then change country")
+   - Suggest HOW to fix it (e.g., "you could delete the ward to open up other countries, or update your age")
 
-3. ASK NEXT QUESTION (if NEXT FIELD TO ASK is provided):
+3. ASK NEXT QUESTION (ONLY if NEXT FIELD TO ASK is provided):
    - After a line break, ask for the next field naturally
-   - The choices shown in NEXT FIELD TO ASK are already validated — present them EXACTLY as listed, do NOT add or remove any
+   - The choices shown are already validated — present them EXACTLY as listed
+   - If NO next field is provided, do NOT ask any question — just end with the fix suggestion
 
-LANGUAGE:
+TONE:
+- Be casual and direct — like a helpful person, NOT a bureaucrat
+- NEVER use phrases like: "I must inform you", "unfortunately", "I'm sorry to say", "please be advised", "I regret to inform"
+- Instead use: "heads up", "just so you know", "the thing is", "here's what happened"
+- Keep it short — max 3-4 sentences total
 - NEVER use: "dropdown", "field_id", "valid_options", "hierarchy", "metadata", "Phase 1", "Phase 3"
-- Use field labels only
-- Sound like a real person, not a system
-- Be encouraging and helpful
-- Keep total response under 5 sentences"""
+- Use field labels only"""
 
     response = _get_client().chat.completions.create(
         model="gpt-4o-mini",
@@ -451,6 +460,8 @@ def call_openai_nudge_message(user_message, form, collected_data, currently_aski
     """Generate a helpful message when the system couldn't process the user's input.
     Includes context about WHY specific values were rejected.
     """
+    print(f"    [llm] call_openai_nudge_message (currently_asking={currently_asking})")
+    print(f"    [llm]   dropped_fields: {dropped_fields}")
     form_prompt = _get_form_prompt(form)
 
     asking_info = ""
@@ -523,6 +534,9 @@ Return ONLY the message text."""
 
 def call_openai_answer_query(query, form, collected_data):
     """Answer a user's question about the form using the full form definition."""
+    print(f"    [llm] call_openai_answer_query")
+    print(f"    [llm]   query: {query!r}")
+    print(f"    [llm]   collected_data: {collected_data}")
     query_prompt = form.get("query_prompt", "")
 
     system_prompt = f"""You are a helpful form assistant answering a user's question.
@@ -579,7 +593,7 @@ LANGUAGE (CRITICAL):
 Return ONLY the answer text."""
 
     response = _get_client().chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-4o",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": query},

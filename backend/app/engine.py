@@ -40,6 +40,7 @@ def build_dependency_graph(form):
 
 def infer_parents_from_hierarchy(form, data):
     """Forward inference: child value → unambiguous parent inference."""
+    print("    [engine] infer_parents_from_hierarchy")
     inferred = {}
 
     for field in form["fields"]:
@@ -163,6 +164,8 @@ def resolve_and_validate(form, candidate_data):
 
     Returns (resolved_data, inferred, conflicts, removed_fields).
     """
+    print("    [engine] resolve_and_validate START")
+    print(f"    [engine] candidate_data: {candidate_data}")
     resolved = dict(candidate_data)
     all_inferred = {}
     all_removed = []
@@ -246,7 +249,28 @@ def resolve_and_validate(form, candidate_data):
             # Invalid under ALL possibilities → conflict
             parent_field = get_field(form, parent_fid)
             parent_label = parent_field["label"] if parent_field else parent_fid
-            # Find which field caused the conflict
+
+            # Find the child field that made the parent ambiguous (e.g., Ward200)
+            ambiguous_source = None
+            for f in form["fields"]:
+                f_fid = f["field_id"]
+                if f_fid in resolved and f.get("parent_field_id"):
+                    matches = find_value_in_hierarchy(form, resolved[f_fid])
+                    field_matches = [m for m in matches if m["field_id"] == f_fid]
+                    if len(field_matches) > 1:
+                        parent_vals = set()
+                        for m in field_matches:
+                            pv = m.get("parents", {}).get(parent_fid)
+                            if pv:
+                                parent_vals.add(pv)
+                        if parent_vals == set(possible_values):
+                            ambiguous_source = {
+                                "field": f.get("label", f_fid),
+                                "value": resolved[f_fid],
+                            }
+                            break
+
+            # Find which field caused the conflict and build per-value reasons
             for field in form["fields"]:
                 fid = field["field_id"]
                 if fid not in resolved:
@@ -256,15 +280,31 @@ def resolve_and_validate(form, candidate_data):
                     continue
                 if parent_fid in resolved:
                     continue
-                conflicts.append({
+
+                # Build per-parent-value detail (e.g., "India: Age must be at least 18")
+                per_value_details = []
+                for pv in possible_values:
+                    test_data = {**resolved, parent_fid: pv}
+                    _, err = validate_field(form, fid, resolved[fid], test_data)
+                    if err:
+                        per_value_details.append(f"{pv}: {err}")
+
+                reason = (
+                    f"{field['label']}={resolved[fid]} is invalid for all possible "
+                    f"{parent_label} values ({', '.join(possible_values)})"
+                )
+                if per_value_details:
+                    reason += ". " + "; ".join(per_value_details)
+
+                conflict = {
                     "field": fid,
                     "value": resolved[fid],
-                    "reason": (
-                        f"{field['label']}={resolved[fid]} is invalid for all possible "
-                        f"{parent_label} values ({', '.join(possible_values)})"
-                    ),
+                    "reason": reason,
                     "triggered_by": {"field": parent_fid, "value": ", ".join(possible_values)},
-                })
+                }
+                if ambiguous_source:
+                    conflict["ambiguous_source"] = ambiguous_source
+                conflicts.append(conflict)
 
         elif len(surviving_values) == 1:
             # Exactly ONE valid parent → infer it!
@@ -292,4 +332,8 @@ def resolve_and_validate(form, candidate_data):
             "involved_fields": hc["involved_fields"],
         })
 
+    print(f"    [engine] resolve_and_validate END")
+    print(f"    [engine] resolved: {resolved}")
+    print(f"    [engine] inferred: {all_inferred}")
+    print(f"    [engine] conflicts: {conflicts}")
     return resolved, all_inferred, conflicts, all_removed

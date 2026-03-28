@@ -97,7 +97,7 @@
                             "value": "Ward1"
                           },
                           {
-                            "value": "Ward200"
+                            "value": "ward10"
                           }
                         ]
                       }
@@ -110,9 +110,6 @@
                     },
                     {
                       "value": "Kottayam"
-                    },
-                    {
-                      "value": "Mangalore"
                     }
                   ]
                 }
@@ -160,7 +157,7 @@
             "field_id": "state",
             "options": [
               {
-                "value": "japanstate",
+                "value": "japanstate-1",
                 "children": {
                   "field_id": "district",
                   "options": [
@@ -185,7 +182,7 @@
                 }
               },
               {
-                "value": "Kansai",
+                "value": "japanstate-2",
                 "children": {
                   "field_id": "district",
                   "options": [
@@ -202,12 +199,12 @@
           }
         },
         {
-          "value": "China",
+          "value": "America",
           "children": {
             "field_id": "state",
             "options": [
               {
-                "value": "Guangdong",
+                "value": "New York",
                 "children": {
                   "field_id": "district",
                   "options": [
@@ -232,7 +229,7 @@
                 }
               },
               {
-                "value": "Beijing",
+                "value": "new jercy",
                 "children": {
                   "field_id": "district",
                   "options": [
@@ -260,6 +257,125 @@
           }
         }
       ]
+    },
+    {
+      "field_id": "card_type",
+      "label": "Card Type",
+      "type": "dropdown",
+      "required": true,
+      "dropdown_options": [
+        {
+          "value": "Credit Card",
+          "children": {
+            "field_id": "card_network",
+            "options": [
+              {
+                "value": "Visa",
+                "children": {
+                  "field_id": "card_variant",
+                  "options": [
+                    {
+                      "value": "Visa Classic"
+                    },
+                    {
+                      "value": "Visa Gold"
+                    },
+                    {
+                      "value": "Visa Platinum"
+                    }
+                  ]
+                }
+              },
+              {
+                "value": "MasterCard",
+                "children": {
+                  "field_id": "card_variant",
+                  "options": [
+                    {
+                      "value": "MasterCard Standard"
+                    },
+                    {
+                      "value": "MasterCard World"
+                    },
+                    {
+                      "value": "MasterCard World Elite"
+                    }
+                  ]
+                }
+              },
+              {
+                "value": "RuPay",
+                "children": {
+                  "field_id": "card_variant",
+                  "options": [
+                    {
+                      "value": "RuPay Classic"
+                    },
+                    {
+                      "value": "RuPay Platinum"
+                    },
+                    {
+                      "value": "RuPay Select"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "value": "Debit Card",
+          "children": {
+            "field_id": "card_network",
+            "options": [
+              {
+                "value": "Visa",
+                "children": {
+                  "field_id": "card_variant",
+                  "options": [
+                    {
+                      "value": "Visa Debit Classic"
+                    },
+                    {
+                      "value": "Visa Debit Platinum"
+                    }
+                  ]
+                }
+              },
+              {
+                "value": "RuPay",
+                "children": {
+                  "field_id": "card_variant",
+                  "options": [
+                    {
+                      "value": "RuPay Debit Classic"
+                    },
+                    {
+                      "value": "RuPay Debit Platinum"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "field_id": "card_network",
+      "label": "Card Network",
+      "type": "dropdown",
+      "required": true,
+      "parent_field_id": "card_type",
+      "dropdown_options": []
+    },
+    {
+      "field_id": "card_variant",
+      "label": "Card Variant",
+      "type": "dropdown",
+      "required": true,
+      "parent_field_id": "card_network",
+      "dropdown_options": []
     },
     {
       "field_id": "state",
