@@ -121,7 +121,18 @@
                     "field_id": "district",
                     "options": [
                       {
-                        "value": "Chennai"
+                        "value": "Chennai",
+                        "children": {
+                          "field_id": "ward",
+                          "options": [
+                            {
+                              "value": "Ward45"
+                            },
+                            {
+                              "value": "Ward46"
+                            }
+                          ]
+                        }
                       },
                       {
                         "value": "Coimbatore"

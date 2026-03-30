@@ -1,0 +1,100 @@
+{
+  "id": "location",
+  "type": "hierarchical",
+  "levels": ["country", "state", "district", "ward"],
+  "data": [
+    {
+      "value": "India",
+      "children": [
+        {
+          "value": "Kerala",
+          "children": [
+            {
+              "value": "Alappuzha",
+              "children": [
+                { "value": "Ward1" },
+                { "value": "Ward10" }
+              ]
+            },
+            { "value": "Ernakulam" },
+            { "value": "Thiruvananthapuram" },
+            { "value": "Kottayam" }
+          ]
+        },
+        {
+          "value": "Tamil Nadu",
+          "children": [
+            { "value": "Chennai",
+           },
+            { "value": "Coimbatore" },
+            { "value": "Madurai" }
+          ]
+        },
+        {
+          "value": "Karnataka",
+          "children": [
+            { "value": "Bangalore" },
+            { "value": "Mysore" },
+            { "value": "Mangalore" }
+          ]
+        }
+      ]
+    },
+    {
+      "value": "Japan",
+      "children": [
+        {
+          "value": "japanstate-1",
+          "children": [
+            {
+              "value": "Tokyo",
+              "children": [
+                { "value": "Ward1" },
+                { "value": "Ward2" }
+              ]
+            },
+            { "value": "Yokohama" }
+          ]
+        },
+        {
+          "value": "japanstate-2",
+          "children": [
+            { "value": "Osaka" },
+            { "value": "Kyoto" }
+          ]
+        }
+      ]
+    },
+    {
+      "value": "America",
+      "children": [
+        {
+          "value": "New York",
+          "children": [
+            {
+              "value": "Shenzhen",
+              "children": [
+                { "value": "Ward100" },
+                { "value": "Ward200" }
+              ]
+            },
+            { "value": "Guangzhou" }
+          ]
+        },
+        {
+          "value": "new jercy",
+          "children": [
+            {
+              "value": "Haidian",
+              "children": [
+                { "value": "Ward1" },
+                { "value": "Ward2" }
+              ]
+            },
+            { "value": "Chaoyang" }
+          ]
+        }
+      ]
+    }
+  ]
+}

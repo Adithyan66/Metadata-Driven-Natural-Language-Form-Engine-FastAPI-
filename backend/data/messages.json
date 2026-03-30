@@ -1,6 +1,22 @@
 [
   {
     "role": "assistant",
-    "content": "Got it! \n\nWhat\u2019s your full name?"
+    "content": "Got it! \n\nCould you please tell me your full name?"
+  },
+  {
+    "role": "user",
+    "content": "har"
+  },
+  {
+    "role": "assistant",
+    "content": "Got it! Your name is saved as har. \n\nHow old are you?"
+  },
+  {
+    "role": "user",
+    "content": "show me all ward in india"
+  },
+  {
+    "role": "assistant",
+    "content": "To determine all available wards in India, we need to consider the states and districts under India. Here are the wards available:\n\n1. In Kerala, Alappuzha district:\n   - Ward1\n   - Ward10\n\n2. In Tamil Nadu, Chennai district:\n   - Ward45\n   - Ward46\n\nThese are the wards you can choose from in India.\n\nGot it! Your name has been noted. \n\nCould you please provide your age?"
   }
 ]
