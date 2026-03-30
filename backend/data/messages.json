@@ -18,5 +18,21 @@
   {
     "role": "assistant",
     "content": "To determine all available wards in India, we need to consider the states and districts under India. Here are the wards available:\n\n1. In Kerala, Alappuzha district:\n   - Ward1\n   - Ward10\n\n2. In Tamil Nadu, Chennai district:\n   - Ward45\n   - Ward46\n\nThese are the wards you can choose from in India.\n\nGot it! Your name has been noted. \n\nCould you please provide your age?"
+  },
+  {
+    "role": "user",
+    "content": "show me all ward in india"
+  },
+  {
+    "role": "assistant",
+    "content": "In India, the available wards are:\n\n1. Ward1 in Alappuzha, Kerala\n2. Ward10 in Alappuzha, Kerala\n3. Ward45 in Chennai, Tamil Nadu\n4. Ward46 in Chennai, Tamil Nadu\n\nThese are the wards you can choose from.\n\nGot it! Your name is saved as \"har.\"\n\nCould you please tell me your age?"
+  },
+  {
+    "role": "user",
+    "content": "show me all ward in india"
+  },
+  {
+    "role": "assistant",
+    "content": "To see all available wards in India, we need to consider the states and districts under India. Here are the wards you can choose from:\n\n1. **Kerala**\n   - Alappuzha: Ward1, Ward10\n\n2. **Tamil Nadu**\n   - Chennai: Ward45, Ward46\n\nThese are the wards available under the specified districts in India.\n\nGreat! I've noted your full name as \"har.\"\n\nCould you please tell me your age?"
   }
 ]

@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from langfuse.langchain import CallbackHandler
 
 from app.storage import read_json, write_json
 from app.hierarchy import get_field, has_options, get_valid_dropdown_values
@@ -132,7 +133,8 @@ def chat(req: ChatRequest):
         "result": None,
     }
 
-    final_state = form_graph.invoke(initial_state)
+    langfuse_handler = CallbackHandler()
+    final_state = form_graph.invoke(initial_state, config={"callbacks": [langfuse_handler]})
 
     # Persist state
     collected_data = final_state["collected_data"]

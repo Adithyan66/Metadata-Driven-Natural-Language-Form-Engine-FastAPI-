@@ -1,0 +1,17 @@
+# Python
+backend/venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment variables
+.env
+.env.*
+
+# Node
+frondend/node_modules/
+frondend/dist/
+
+# OS files
+.DS_Store
+Thumbs.db
