@@ -157,15 +157,28 @@ EXTRACTION_RULES = """RULES:
 13. SENSITIVE FIELDS:
     - Password fields → always return ""
 
+14. CONVERSATIONAL INTENTS:
+    - If user says ONLY "yes", "yeah", "yep", "sure", "ok", "okay", "correct", "right", "proceed", "go ahead", "continue"
+      → Look at the conversation history to understand WHAT the user is confirming
+      → If confirming a previously suggested value, extract that value to the correct field
+      → If no value to confirm, return "_confirm": true
+    - If user says ONLY "no", "nope", "nah", "wrong", "not that", "cancel"
+      → return "_deny": true (user rejects the last suggestion or wants to re-answer)
+    - If user says ONLY "skip", "later", "next", "move on"
+      → return "_skip": true (user wants to skip the current field)
+    - If user says ONLY "wait", "hold on", "pause", "stop"
+      → return "_wait": true
+    - These intents should ONLY be set when the message is PURELY conversational with no field data
+
 Return ONLY a JSON object. No explanation."""
 
 
-def call_openai_extract(user_message, form, collected_data, currently_asking=None, currently_asking_field=None):
+def call_openai_extract(user_message, form, collected_data, currently_asking=None, currently_asking_field=None, messages_history=None):
     """Extract field values from user message."""
     print(f"    [llm] call_openai_extract (currently_asking={currently_asking})")
     fields_context = _build_fields_context(form, collected_data)
     form_prompt = _get_form_prompt(form)
-    
+
 
     asking_context = ""
     if currently_asking and currently_asking_field:
@@ -187,12 +200,18 @@ Already collected: {json.dumps(collected_data)}
 {asking_context}
 {EXTRACTION_RULES}"""
 
+    # Build messages with conversation history for context
+    llm_messages = [{"role": "system", "content": system_prompt}]
+    if messages_history:
+        # Include last 10 messages for context (skip the current user message, it's added separately)
+        recent = messages_history[-11:-1] if len(messages_history) > 1 else []
+        for msg in recent:
+            llm_messages.append({"role": msg["role"], "content": msg["content"]})
+    llm_messages.append({"role": "user", "content": user_message})
+
     response = _get_client().chat.completions.create(
         model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message},
-        ],
+        messages=llm_messages,
         temperature=0,
         response_format={"type": "json_object"},
     )
@@ -237,7 +256,7 @@ LANGUAGE (CRITICAL):
 - Use natural everyday language as if talking to a real person"""
 
 
-def call_openai_next_question(form, collected_data, missing_fields, last_action=None):
+def call_openai_next_question(form, collected_data, missing_fields, last_action=None, messages_history=None):
     """Generate the next question to ask the user."""
     print(f"    [llm] call_openai_next_question")
     print(f"    [llm]   missing_fields: {missing_fields}")
@@ -329,11 +348,16 @@ IMPORTANT:
 
 Return ONLY the message text."""
 
+    # Build messages with conversation history for continuity
+    llm_messages = [{"role": "system", "content": system_prompt}]
+    if messages_history:
+        recent = messages_history[-6:]
+        for msg in recent:
+            llm_messages.append({"role": msg["role"], "content": msg["content"]})
+
     response = _get_client().chat.completions.create(
         model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": system_prompt},
-        ],
+        messages=llm_messages,
         temperature=0.7,
     )
 
@@ -342,7 +366,7 @@ Return ONLY the message text."""
 
 # === Error Message ===
 
-def call_openai_error_message(form, field_errors, user_message, collected_data, missing_fields=None, last_action=None):
+def call_openai_error_message(form, field_errors, user_message, collected_data, missing_fields=None, last_action=None, messages_history=None):
     """Generate a unified response: explain rejections + acknowledge stored fields + ask next question."""
     print(f"    [llm] call_openai_error_message")
     print(f"    [llm]   field_errors: {field_errors}")
@@ -443,11 +467,15 @@ TONE:
 - NEVER use: "dropdown", "field_id", "valid_options", "hierarchy", "metadata", "Phase 1", "Phase 3"
 - Use field labels only"""
 
+    llm_messages = [{"role": "system", "content": system_prompt}]
+    if messages_history:
+        recent = messages_history[-6:]
+        for msg in recent:
+            llm_messages.append({"role": msg["role"], "content": msg["content"]})
+
     response = _get_client().chat.completions.create(
         model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": system_prompt},
-        ],
+        messages=llm_messages,
         temperature=0.5,
     )
 
@@ -456,7 +484,7 @@ TONE:
 
 # === Nudge (uncertain input) ===
 
-def call_openai_nudge_message(user_message, form, collected_data, currently_asking=None, currently_asking_field=None, dropped_fields=None):
+def call_openai_nudge_message(user_message, form, collected_data, currently_asking=None, currently_asking_field=None, dropped_fields=None, messages_history=None):
     """Generate a helpful message when the system couldn't process the user's input.
     Includes context about WHY specific values were rejected.
     """
@@ -519,11 +547,15 @@ LANGUAGE:
 
 Return ONLY the message text."""
 
+    llm_messages = [{"role": "system", "content": system_prompt}]
+    if messages_history:
+        recent = messages_history[-6:]
+        for msg in recent:
+            llm_messages.append({"role": msg["role"], "content": msg["content"]})
+
     response = _get_client().chat.completions.create(
         model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": system_prompt},
-        ],
+        messages=llm_messages,
         temperature=0.7,
     )
 

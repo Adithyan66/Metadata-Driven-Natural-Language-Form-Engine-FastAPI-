@@ -51,6 +51,7 @@ def extract(state: FormState) -> dict:
     collected_data = state["collected_data"]
     currently_asking = state["currently_asking"]
     user_message = state["user_message"]
+    messages = state.get("messages", [])
 
     password_field_ids = [f["field_id"] for f in form["fields"] if f.get("type") == "password"]
 
@@ -61,6 +62,7 @@ def extract(state: FormState) -> dict:
             user_message, form, collected_data,
             currently_asking=currently_asking,
             currently_asking_field=state["currently_asking_field"],
+            messages_history=messages,
         )
         for fid in password_field_ids:
             extracted.pop(fid, None)
@@ -86,6 +88,29 @@ def parse_intent(state: FormState) -> dict:
 
     query = extracted.pop("_query", None)
 
+    # Handle conversational intents
+    is_confirm = extracted.pop("_confirm", False)
+    is_deny = extracted.pop("_deny", False)
+    is_skip = extracted.pop("_skip", False)
+    is_wait = extracted.pop("_wait", False)
+
+    # Rule-based fallback: detect conversational intents the LLM may have missed
+    msg_stripped = user_msg.strip().rstrip(".!?")
+    CONFIRM_WORDS = {"yes", "yeah", "yep", "sure", "ok", "okay", "correct", "right", "proceed", "go ahead", "continue", "yea", "y"}
+    DENY_WORDS = {"no", "nope", "nah", "wrong", "not that", "cancel", "n"}
+    SKIP_WORDS = {"skip", "later", "next", "move on"}
+    WAIT_WORDS = {"wait", "hold on", "pause", "stop"}
+
+    if not extracted and not is_confirm and not is_deny and not is_skip and not is_wait:
+        if msg_stripped in CONFIRM_WORDS:
+            is_confirm = True
+        elif msg_stripped in DENY_WORDS:
+            is_deny = True
+        elif msg_stripped in SKIP_WORDS:
+            is_skip = True
+        elif msg_stripped in WAIT_WORDS:
+            is_wait = True
+
     # Auto-detect update intent if LLM missed it
     # If user message has update keywords AND extracted fields overlap with collected_data
     if not is_update and extracted:
@@ -109,6 +134,10 @@ def parse_intent(state: FormState) -> dict:
         "intent": intent,
         "delete_fields": delete_fields,
         "query": query,
+        "is_confirm": is_confirm,
+        "is_deny": is_deny,
+        "is_skip": is_skip,
+        "is_wait": is_wait,
     }
 
 
@@ -275,18 +304,19 @@ def sanitize(state: FormState) -> dict:
 
 
 def respond_empty(state: FormState) -> dict:
-    """Handle empty extraction: query-only, delete-only, or nudge."""
+    """Handle empty extraction: query-only, delete-only, conversational intents, or nudge."""
     print("\n>>> [7/12] respond_empty (no extracted values)")
     form = state["form"]
     collected_data = state["collected_data"]
     query_answer = state["query_answer"]
     deleted_labels = state.get("deleted_labels", [])
+    messages = state.get("messages", [])
 
     # Query only
     if query_answer and not deleted_labels:
         missing = get_missing_fields(form, collected_data)
         if missing:
-            msg = _with_query(query_answer, call_openai_next_question(form, collected_data, missing))
+            msg = _with_query(query_answer, call_openai_next_question(form, collected_data, missing, messages_history=messages))
         else:
             msg = _with_query(query_answer, "All information has been collected. Thank you!")
         return {"response_msg": msg, "status": "pending" if missing else "complete"}
@@ -296,19 +326,65 @@ def respond_empty(state: FormState) -> dict:
         missing = get_missing_fields(form, collected_data)
         last_action = {"deleted": deleted_labels}
         if missing:
-            msg = _with_query(query_answer, call_openai_next_question(form, collected_data, missing, last_action=last_action))
+            msg = _with_query(query_answer, call_openai_next_question(form, collected_data, missing, last_action=last_action, messages_history=messages))
         else:
             msg = _with_query(query_answer, "All information has been collected. Thank you!")
         return {"response_msg": msg, "status": "pending" if missing else "complete"}
 
-    # Nudge — pass dropped_fields so LLM can explain WHY values were rejected
+    # Handle conversational intents
+    is_confirm = state.get("is_confirm", False)
+    is_deny = state.get("is_deny", False)
+    is_skip = state.get("is_skip", False)
+    is_wait = state.get("is_wait", False)
+
     currently_asking, currently_asking_field = get_currently_asking(form, collected_data)
+    missing = get_missing_fields(form, collected_data)
+
+    if is_wait:
+        return {
+            "response_msg": "No problem, take your time! Just continue whenever you're ready.",
+            "status": "pending",
+        }
+
+    if is_skip:
+        if currently_asking and currently_asking_field:
+            label = currently_asking_field.get("label", currently_asking)
+            is_required = currently_asking_field.get("required", False)
+            if is_required:
+                return {
+                    "response_msg": f"I'd love to let you skip, but {label} is required for this form. Could you please provide it?",
+                    "status": "pending",
+                }
+            else:
+                # Skip optional field — move to next question
+                if missing:
+                    remaining = [f for f in missing if f != currently_asking]
+                    if remaining:
+                        msg = call_openai_next_question(form, collected_data, remaining, messages_history=messages)
+                        return {"response_msg": f"No problem, skipping {label}.\n\n{msg}", "status": "pending"}
+                return {"response_msg": f"Skipped {label}. All other fields have been collected. Thank you!", "status": "complete"}
+
+    if is_deny:
+        if currently_asking and currently_asking_field:
+            label = currently_asking_field.get("label", currently_asking)
+            msg = call_openai_next_question(form, collected_data, missing, messages_history=messages)
+            return {"response_msg": msg, "status": "pending"}
+
+    if is_confirm:
+        if missing:
+            msg = call_openai_next_question(form, collected_data, missing, messages_history=messages)
+            return {"response_msg": msg, "status": "pending"}
+        else:
+            return {"response_msg": "All information has been collected. Thank you!", "status": "complete"}
+
+    # Nudge — pass dropped_fields so LLM can explain WHY values were rejected
     dropped_fields = state.get("dropped_fields", [])
     nudge_msg = call_openai_nudge_message(
         state["user_message"], form, collected_data,
         currently_asking=currently_asking,
         currently_asking_field=currently_asking_field,
         dropped_fields=dropped_fields,
+        messages_history=messages,
     )
     return {
         "response_msg": _with_query(query_answer, nudge_msg),
@@ -575,6 +651,7 @@ def handle_conflicts(state: FormState) -> dict:
         form, all_errors, state["user_message"], collected_data,
         missing_fields=None,
         last_action=last_action if last_action else None,
+        messages_history=state.get("messages", []),
     )
     response_msg = _with_query(query_answer, error_msg)
 
@@ -642,7 +719,7 @@ def commit(state: FormState) -> dict:
     if rejected:
         last_action["rejected"] = rejected
 
-    response_msg = _with_query(query_answer, call_openai_next_question(form, collected_data, missing, last_action=last_action))
+    response_msg = _with_query(query_answer, call_openai_next_question(form, collected_data, missing, last_action=last_action, messages_history=state.get("messages", [])))
 
     return {
         "collected_data": collected_data,

@@ -16,6 +16,10 @@ class FormState(TypedDict):
     extracted: dict
     is_uncertain: bool
     is_update: bool
+    is_confirm: bool
+    is_deny: bool
+    is_skip: bool
+    is_wait: bool
     intent: str
     delete_fields: list
     query: str | None
