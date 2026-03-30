@@ -1,14 +1,6 @@
 [
   {
     "role": "assistant",
-    "content": "Got it! \n\nCould you please provide your full name?"
-  },
-  {
-    "role": "user",
-    "content": "MasterCard World"
-  },
-  {
-    "role": "assistant",
-    "content": "Got it! I've noted that you will be using a MasterCard World credit card.\n\nCould you please provide your full name?"
+    "content": "Got it! \n\nWhat\u2019s your full name?"
   }
 ]
